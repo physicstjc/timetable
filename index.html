@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timetable to ICS Converter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            background-color: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        button {
+            background-color: #57CAAA;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #45b696;
+        }
+        #progress {
+            margin-top: 20px;
+        }
+        .teacher-list {
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+        }
+        .date-inputs {
+            margin: 20px 0;
+            padding: 10px;
+            background: #fff;
+            border-radius: 4px;
+        }
+        .date-inputs label {
+            display: block;
+            margin: 10px 0;
+        }
+        .preview-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff;
+            border-radius: 4px;
+            display: none;
+        }
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .preview-table th, .preview-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .preview-table th {
+            background-color: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>Temasek Junior College Timetable Calendar Converter</h1>
+        
+        <div class="alert alert-info" role="alert">
+            <h4 class="alert-heading">Instructions:</h4>
+            <ol>
+                <li>You can either:
+                    <ul>
+                        <li>Use the default TJC timetable that's already loaded, or</li>
+                        <li>Upload your own XML timetable file</li>
+                    </ul>
+                </li>
+                <li>Select a teacher from the dropdown list</li>
+                <li>Choose the start date of the semester</li>
+                <li>Choose the end date of the semester</li>
+                <li>Specify whether the first week is an odd or even week</li>
+                <li>Click "Generate Calendar" to download the ICS file</li>
+            </ol>
+            
+            <hr>
+            <p class="mb-0">
+                <strong>Note:</strong> The generated ICS file can be imported into various calendar applications such as:
+                <ul>
+                    <li>Google Calendar</li>
+                    <li>Apple Calendar</li>
+                    <li>Microsoft Outlook</li>
+                </ul>
+            </p>
+        </div>
+    
+        <div class="file-input">
+            <label>
+                Upload XML File (Optional):
+                <input type="file" id="xmlFile" accept=".xml">
+            </label>
+        </div>
+
+        <div class="date-inputs">
+            <label>
+                Start Date:
+                <input type="date" id="startDate" required>
+            </label>
+            <label>
+                End Date:
+                <input type="date" id="endDate" required>
+            </label>
+            <label>
+                Start Week Type:
+                <select id="weekType">
+                    <option value="odd">Odd Week</option>
+                    <option value="even">Even Week</option>
+                </select>
+            </label>
+        </div>
+
+        <div class="preview-section" id="previewSection">
+            <h3>Preview Timetable</h3>
+            <select id="teacherSelect">
+                <option value="">Select a teacher...</option>
+            </select>
+            <div id="previewContent">
+                <table class="preview-table" id="previewTable">
+                    <thead>
+                        <tr>
+                            <th>Day</th>
+                            <th>Time</th>
+                            <th>Subject</th>
+                            <th>Room</th>
+                            <th>Week Type</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Replace the existing button with this -->
+        <button type="button" onclick="previewTimetable()">Preview</button>
+        <button onclick="processXML()">Generate ICS Files</button>
+        
+        <div id="progress"></div>
+        <div id="teacherList" class="teacher-list"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ical.js/1.5.0/ical.min.js"></script>
+    <script src="timetable.js"></script>
+</body>
+</html>
+<style>
+    .file-input {
+        margin: 20px 0;
+        padding: 10px;
+        background: #fff;
+        border-radius: 4px;
+    }
+    
+    .file-input label {
+        display: block;
+        margin: 10px 0;
+    }
+</style>
