@@ -302,11 +302,21 @@ function createTeacherCalendar(teacherId, startDate, endDate, startWeekType) {
 
             // Calculate event time
             const eventDate = new Date(firstWeekDate);
-            const startDayOfWeek = firstWeekDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
-            const targetDayIndex = group.dayIndex + 1; // Add 1 since our dayIndex starts from 0 = Monday
+            const startDayOfWeek = firstWeekDate.getDay();
+            const targetDayIndex = group.dayIndex + 1;
             const daysToAdd = (targetDayIndex - startDayOfWeek + 7) % 7;
             eventDate.setDate(firstWeekDate.getDate() + daysToAdd);
             
+            // Determine if this event falls in the next week
+            const isNextWeek = daysToAdd >= (7 - startDayOfWeek);
+            
+            // Adjust start date based on week type, considering if the event falls in the next week
+            const shouldStartNextWeek = 
+                (startWeekType === 'even' && group.weeks === '10' && !isNextWeek) || 
+                (startWeekType === 'odd' && group.weeks === '01' && !isNextWeek) ||
+                (startWeekType === 'even' && group.weeks === '01' && isNextWeek) ||
+                (startWeekType === 'odd' && group.weeks === '10' && isNextWeek);
+
             const startHour = Math.floor((group.startPeriod - 1) / 2) + 7;
             const startMinute = ((group.startPeriod - 1) % 2) * 30 + 30;
             const startTime = new Date(eventDate);
@@ -336,13 +346,12 @@ function createTeacherCalendar(teacherId, startDate, endDate, startWeekType) {
             const recur = new ICAL.Recur({
                 freq: 'WEEKLY',
                 interval: 2,
-                byday: [days[targetDayIndex]], // Use adjusted targetDayIndex
+                byday: [days[targetDayIndex]],
                 until: ICAL.Time.fromJSDate(untilDate)
             });
 
-            // Set different start dates for odd/even week events
-            if ((group.weeks === '10' && startWeekType === 'even') || 
-                (group.weeks === '01' && startWeekType === 'odd')) {
+            // Use the previously calculated shouldStartNextWeek value
+            if (shouldStartNextWeek) {
                 startTime.setDate(startTime.getDate() + 7);
                 endTime.setDate(endTime.getDate() + 7);
                 vevent.updatePropertyWithValue('dtstart', ICAL.Time.fromJSDate(startTime));
