@@ -302,7 +302,10 @@ function createTeacherCalendar(teacherId, startDate, endDate, startWeekType) {
 
             // Calculate event time
             const eventDate = new Date(firstWeekDate);
-            eventDate.setDate(firstWeekDate.getDate() + group.dayIndex);
+            const startDayOfWeek = firstWeekDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+            const targetDayIndex = group.dayIndex + 1; // Add 1 since our dayIndex starts from 0 = Monday
+            const daysToAdd = (targetDayIndex - startDayOfWeek + 7) % 7;
+            eventDate.setDate(firstWeekDate.getDate() + daysToAdd);
             
             const startHour = Math.floor((group.startPeriod - 1) / 2) + 7;
             const startMinute = ((group.startPeriod - 1) % 2) * 30 + 30;
@@ -333,7 +336,7 @@ function createTeacherCalendar(teacherId, startDate, endDate, startWeekType) {
             const recur = new ICAL.Recur({
                 freq: 'WEEKLY',
                 interval: 2,
-                byday: [days[group.dayIndex + 1]],
+                byday: [days[targetDayIndex]], // Use adjusted targetDayIndex
                 until: ICAL.Time.fromJSDate(untilDate)
             });
 
