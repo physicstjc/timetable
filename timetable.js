@@ -246,87 +246,111 @@ function createTeacherCalendar(teacherId, startDate, endDate, startWeekType) {
     const lessons = xmlData.querySelectorAll(`lesson[teacherids*="${teacherId}"]`);
     console.log(`Found ${lessons.length} total lessons for teacher ${teacherId}`);
     
-    for (let currentDate = new Date(startDate); currentDate <= endDate; currentDate.setDate(currentDate.getDate() + 1)) {
-        const dayOfWeek = currentDate.getDay();
-        if (dayOfWeek === 0 || dayOfWeek === 6) continue;
+    // Process first week only to create recurring events
+    const firstWeekDate = new Date(startDate);
+    const processedEvents = new Set();
 
-        const weekNumber = Math.floor((currentDate - startDate) / (7 * 24 * 60 * 60 * 1000));
-        const isOddWeek = weekNumber % 2 === (startWeekType === 'odd' ? 0 : 1);
-        console.log(`Processing date: ${currentDate.toISOString()}, Week ${weekNumber}, ${isOddWeek ? 'Odd' : 'Even'} week`);
+    lessons.forEach(lesson => {
+        const lessonId = lesson.getAttribute('id');
+        const subjectId = lesson.getAttribute('subjectid');
+        const subject = mappings.subjects[subjectId] || { name: 'Unknown', short: 'Unknown' };
+        
+        if (subject.name.includes('HBL') || subject.name.includes('Home Based Learning')) {
+            return;
+        }
 
-        lessons.forEach(lesson => {
-            const lessonId = lesson.getAttribute('id');
-            const subjectId = lesson.getAttribute('subjectid');
-            const subject = mappings.subjects[subjectId] || { name: 'Unknown', short: 'Unknown' }; // Add fallback
+        const cards = xmlData.querySelectorAll(`card[lessonid="${lessonId}"]`);
+        
+        // Group consecutive periods for each day
+        const dayGroups = new Map();
+        
+        cards.forEach(card => {
+            const weeks = card.getAttribute('weeks');
+            const daysPattern = card.getAttribute('days');
+            const periodId = parseInt(card.getAttribute('period'));
             
-            // Skip HBL entries
-            if (subject.name.includes('HBL') || subject.name.includes('Home Based Learning')) {
-                console.log(`Skipping HBL lesson: ${subject.name}`);
-                return;
-            }
-
-            const cards = xmlData.querySelectorAll(`card[lessonid="${lessonId}"]`);
-            console.log(`Found ${cards.length} cards for lesson ${lessonId} (${subject.name})`);
-            
-            // Group consecutive periods
-            const key = `${currentDate.toISOString()}-${lessonId}`;
-            let periodGroup = { startPeriod: Infinity, endPeriod: -1, cards: [] };
-            
-            cards.forEach(card => {
-                const weeks = card.getAttribute('weeks');
-                const daysPattern = card.getAttribute('days');
+            // Process each day of the week
+            for (let dayIndex = 0; dayIndex < daysPattern.length; dayIndex++) {
+                if (daysPattern[dayIndex] !== '1') continue;
                 
-                if ((isOddWeek && weeks === '01') || (!isOddWeek && weeks === '10')) {
-                    console.log(`Skipping card due to week mismatch: ${weeks} vs ${isOddWeek ? 'odd' : 'even'}`);
-                    return;
+                const key = `${dayIndex}-${weeks}-${lessonId}`;
+                if (!dayGroups.has(key)) {
+                    dayGroups.set(key, {
+                        startPeriod: periodId,
+                        endPeriod: periodId,
+                        weeks,
+                        dayIndex,
+                        card
+                    });
+                } else {
+                    const group = dayGroups.get(key);
+                    if (periodId === group.endPeriod + 1) {
+                        group.endPeriod = periodId;
+                    }
                 }
-
-                if (daysPattern[dayOfWeek - 1] !== '1') {
-                    console.log(`Skipping card due to day mismatch: ${daysPattern} vs day ${dayOfWeek}`);
-                    return;
-                }
-                
-                const periodId = parseInt(card.getAttribute('period'));
-                periodGroup.startPeriod = Math.min(periodGroup.startPeriod, periodId);
-                periodGroup.endPeriod = Math.max(periodGroup.endPeriod, periodId);
-                periodGroup.cards.push(card);
-            });
-
-            if (periodGroup.cards.length > 0) {
-                console.log(`Creating event for ${subject.name}, periods ${periodGroup.startPeriod}-${periodGroup.endPeriod}`);
-                const roomId = periodGroup.cards[0].getAttribute('classroomids').split(',')[0];
-                const room = mappings.rooms[roomId] || { name: 'Unknown', short: 'Unknown' }; // Add fallback
-                const classIds = (lesson.getAttribute('classids') || '').split(',').filter(Boolean);
-                const classNames = classIds.length > 3 
-                    ? 'Multiple Classes'
-                    : classIds.map(id => mappings.classes[id]?.name || 'Unknown').join(', ');
-
-                // Calculate times based on first and last periods
-                const startTime = new Date(currentDate);
-                const startHour = Math.floor((periodGroup.startPeriod - 1) / 2) + 7;
-                const startMinute = ((periodGroup.startPeriod - 1) % 2) * 30 + 30;
-                startTime.setHours(startHour, startMinute, 0);
-
-                const endTime = new Date(currentDate);
-                const totalMinutes = ((periodGroup.endPeriod - 1) % 2) * 30 + 60;
-                const endHour = Math.floor((periodGroup.endPeriod - 1) / 2) + 7;
-                endTime.setHours(endHour + Math.floor(totalMinutes / 60), totalMinutes % 60, 0);
-
-                const vevent = new ICAL.Component('vevent');
-                vevent.addPropertyWithValue('summary', `${subject.name} (${classNames})`);
-                vevent.addPropertyWithValue('dtstart', ICAL.Time.fromJSDate(startTime))
-                    .setParameter('tzid', 'Asia/Singapore');
-                vevent.addPropertyWithValue('dtend', ICAL.Time.fromJSDate(endTime))
-                    .setParameter('tzid', 'Asia/Singapore');
-                vevent.addPropertyWithValue('location', room.name);
-                vevent.addPropertyWithValue('description', classNames);
-                vevent.addPropertyWithValue('status', 'CONFIRMED');
-                vevent.addPropertyWithValue('uid', `${lessonId}-${currentDate.toISOString()}`);
-
-                cal.addSubcomponent(vevent);
             }
         });
-    }
+
+        // Create recurring events for each group
+        dayGroups.forEach((group) => {
+            const roomId = group.card.getAttribute('classroomids').split(',')[0];
+            const room = mappings.rooms[roomId] || { name: 'Unknown', short: 'Unknown' };
+            const classIds = (lesson.getAttribute('classids') || '').split(',').filter(Boolean);
+            const classNames = classIds.length > 3 
+                ? 'Multiple Classes'
+                : classIds.map(id => mappings.classes[id]?.name || 'Unknown').join(', ');
+
+            // Calculate event time
+            const eventDate = new Date(firstWeekDate);
+            eventDate.setDate(firstWeekDate.getDate() + group.dayIndex);
+            
+            const startHour = Math.floor((group.startPeriod - 1) / 2) + 7;
+            const startMinute = ((group.startPeriod - 1) % 2) * 30 + 30;
+            const startTime = new Date(eventDate);
+            startTime.setHours(startHour, startMinute, 0);
+
+            const totalMinutes = ((group.endPeriod - 1) % 2) * 30 + 60;
+            const endHour = Math.floor((group.endPeriod - 1) / 2) + 7;
+            const endTime = new Date(eventDate);
+            endTime.setHours(endHour + Math.floor(totalMinutes / 60), totalMinutes % 60, 0);
+
+            const vevent = new ICAL.Component('vevent');
+            vevent.addPropertyWithValue('summary', `${subject.name} (${classNames})`);
+            vevent.addPropertyWithValue('dtstart', ICAL.Time.fromJSDate(startTime))
+                .setParameter('tzid', 'Asia/Singapore');
+            vevent.addPropertyWithValue('dtend', ICAL.Time.fromJSDate(endTime))
+                .setParameter('tzid', 'Asia/Singapore');
+            vevent.addPropertyWithValue('location', room.name);
+            vevent.addPropertyWithValue('description', classNames);
+            vevent.addPropertyWithValue('status', 'CONFIRMED');
+            vevent.addPropertyWithValue('uid', `${lessonId}-${group.dayIndex}-${group.weeks}`);
+
+            // Create recurrence rule using ICAL.Recur
+            const days = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+            const untilDate = new Date(endDate);
+            untilDate.setHours(23, 59, 59);
+
+            const recur = new ICAL.Recur({
+                freq: 'WEEKLY',
+                interval: 2,
+                byday: [days[group.dayIndex + 1]],
+                until: ICAL.Time.fromJSDate(untilDate)
+            });
+
+            // Set different start dates for odd/even week events
+            if ((group.weeks === '10' && startWeekType === 'even') || 
+                (group.weeks === '01' && startWeekType === 'odd')) {
+                startTime.setDate(startTime.getDate() + 7);
+                endTime.setDate(endTime.getDate() + 7);
+                vevent.updatePropertyWithValue('dtstart', ICAL.Time.fromJSDate(startTime));
+                vevent.updatePropertyWithValue('dtend', ICAL.Time.fromJSDate(endTime));
+            }
+
+            // Add the recurrence rule to the event
+            vevent.addPropertyWithValue('rrule', recur);
+            cal.addSubcomponent(vevent);
+        });
+    });
 
     return cal;
 }
