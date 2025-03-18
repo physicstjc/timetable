@@ -3,172 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Timetable to ICS Converter</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .container {
-            background-color: #f5f5f5;
-            padding: 20px;
-            border-radius: 8px;
-        }
-        button {
-            background-color: #57CAAA;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            margin: 5px;
-        }
-        button:hover {
-            background-color: #45b696;
-        }
-        #progress {
-            margin-top: 20px;
-        }
-        .teacher-list {
-            margin-top: 20px;
-            max-height: 300px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            padding: 10px;
-        }
-        .date-inputs {
-            margin: 20px 0;
-            padding: 10px;
-            background: #fff;
-            border-radius: 4px;
-        }
-        .date-inputs label {
-            display: block;
-            margin: 10px 0;
-        }
-        .preview-section {
-            margin-top: 20px;
-            padding: 15px;
-            background: #fff;
-            border-radius: 4px;
-            display: none;
-        }
-        .preview-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-        .preview-table th, .preview-table td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        .preview-table th {
-            background-color: #f0f0f0;
-        }
-    </style>
+    <title>Timetable Calendar Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container mt-4">
-        <h1>Temasek Junior College Timetable Calendar Converter</h1>
-        
-        <div class="alert alert-info" role="alert">
-            <h4 class="alert-heading">Instructions:</h4>
-            <ol>
-                <li>You can either:
-                    <ul>
-                        <li>Use the default TJC timetable that's already loaded on 17 March 2025, or</li>
-                        <li>Upload your own XML timetable file</li>
-                    </ul>
-                </li>
-                <li>Select a teacher from the dropdown list</li>
-                <li>Choose the start date of the term</li>
-                <li>Choose the end date of the term</li>
-                <li>Specify whether the first week is an odd or even week</li>
-                <li>Click "Generate Calendar" to download the ICS file</li>
-            </ol>
-            
-            <hr>
-            <p class="mb-0">
-                <strong>Note:</strong> The generated ICS file can be imported into various calendar applications such as:
-                <ul>
-                    <li>Google Calendar</li>
-                    <li>Apple Calendar</li>
-                    <li>Microsoft Outlook</li>
-                </ul>
-            </p>
-        </div>
-    
-        <div class="file-input">
-            <label>
-                Upload XML File (Optional):
-                <input type="file" id="xmlFile" accept=".xml">
-            </label>
-        </div>
+    <div class="container">
+        <header>
+            <h1>Timetable Calendar Generator</h1>
+            <p class="subtitle">Generate iCal files from your timetable data</p>
+            <button onclick="toggleInstructions()" class="button secondary">Show Instructions</button>
+        </header>
 
-        <div class="date-inputs">
-            <label>
-                Start Date:
-                <input type="date" id="startDate" required>
-            </label>
-            <label>
-                End Date:
-                <input type="date" id="endDate" required>
-            </label>
-            <label>
-                Start Week Type:
-                <select id="weekType">
-                    <option value="odd">Odd Week</option>
-                    <option value="even">Even Week</option>
-                </select>
-            </label>
-        </div>
+        <div id="instructions" class="instructions-section" style="display: none;">
+            <div class="card">
+                <h2>Instructions</h2>
+                <div class="instruction-steps">
+                    <h3>Step 1: Generate your timetable (.ics file)</h3>
+                    <ol>
+                        <li>Select your name from the drop-down menu above.</li>
+                        <li>The default dates are set for Term 2 (24/03/2025 to 30/05/2025).</li>
+                        <li>You can modify the dates if needed.</li>
+                        <li>Select whether your start date falls on an Odd or Even week.</li>
+                        <li>Click "Generate Calendar" and note where the .ics file is saved.</li>
+                    </ol>
 
-        <div class="preview-section" id="previewSection">
-            <h3>Preview Timetable</h3>
-            <select id="teacherSelect">
-                <option value="">Select a teacher...</option>
-            </select>
-            <div id="previewContent">
-                <table class="preview-table" id="previewTable">
-                    <thead>
-                        <tr>
-                            <th>Day</th>
-                            <th>Time</th>
-                            <th>Subject</th>
-                            <th>Room</th>
-                            <th>Week Type</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
+                    <h3>Step 2: Import to Google Calendar</h3>
+                    <ol>
+                        <li>Open <a href="https://calendar.google.com" target="_blank">Google Calendar</a></li>
+                        <li>Click the Settings icon (⚙️) in the top right</li>
+                        <li>In the left menu, click "Import & Export"</li>
+                        <li>Click "Select file from your computer" and choose your .ics file</li>
+                        <li>Select which calendar to add the events to</li>
+                        <li>Click "Import"</li>
+                    </ol>
+                </div>
             </div>
         </div>
 
-        <!-- Replace the existing button with this -->
-        <button type="button" onclick="previewTimetable()">Preview</button>
-        <button onclick="processXML()">Generate ICS Files</button>
-        
-        <div id="progress"></div>
-        <div id="teacherList" class="teacher-list"></div>
-    </div>
+        <main>
+            <section id="previewSection" class="preview-section card">
+                <h2>Generate Calendar</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="teacherSelect">Select Teacher:</label>
+                        <select id="teacherSelect" class="select-input"></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="startDate">Start Date:</label>
+                        <input type="date" id="startDate" class="date-input" value="2025-03-24">
+                    </div>
+                    <div class="form-group">
+                        <label for="endDate">End Date:</label>
+                        <input type="date" id="endDate" class="date-input" value="2025-05-30">
+                    </div>
+                    <div class="form-group">
+                        <label for="weekType">Starting Week Type:</label>
+                        <select id="weekType" class="select-input">
+                            <option value="odd">Odd Week</option>
+                            <option value="even">Even Week</option>
+                        </select>
+                    </div>
+                </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ical.js/1.5.0/ical.min.js"></script>
-    <script src="timetable.js"></script>
+                <div class="table-container">
+                    <table id="previewTable" class="preview-table">
+                        <thead>
+                            <tr>
+                                <th>Day</th>
+                                <th>Time</th>
+                                <th>Subject</th>
+                                <th>Room</th>
+                                <th>Week Type</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <div class="actions">
+                    <button onclick="processXML()" class="button primary">Generate Calendar</button>
+                    <p id="progress" class="progress-text"></p>
+                </div>
+            </section>
+
+            <section class="input-section card admin-section">
+                <div class="admin-header">
+                    <h2>Admin Data Input</h2>
+                    <span class="optional-tag">Optional</span>
+                </div>
+                <p class="admin-description">This section is for administrative purposes only. Use it to upload a custom XML file if needed. Do note that the XML file is not saved.</p>
+                <div class="file-input-wrapper">
+                    <input type="file" id="xmlFile" accept=".xml" class="file-input">
+                    <label for="xmlFile" class="file-label">Choose XML File</label>
+                    <span class="file-name">No file chosen</span>
+                </div>
+                <button onclick="previewTimetable()" class="button secondary">Preview Timetable</button>
+            </section>
+        </main>
+    </div>
+    <script src="ical.min.js"></script>
+    <script src="timetable.js" defer></script>
 </body>
 </html>
-<style>
-    .file-input {
-        margin: 20px 0;
-        padding: 10px;
-        background: #fff;
-        border-radius: 4px;
-    }
-    
-    .file-input label {
-        display: block;
-        margin: 10px 0;
-    }
-</style>

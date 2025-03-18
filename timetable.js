@@ -144,16 +144,14 @@ function updatePreview(teacherId) {
     const previewTable = document.getElementById('previewTable').getElementsByTagName('tbody')[0];
     const lessons = xmlData.querySelectorAll(`lesson[teacherids*="${teacherId}"]`);
     
-    // Create a map to store lessons by day and time
     const lessonMap = new Map();
     
     lessons.forEach(lesson => {
         const lessonId = lesson.getAttribute('id');
-        const cards = xmlData.querySelectorAll(`card[lessonid="${lessonId}"]`);
+        const weeksdefId = lesson.getAttribute('weeksdefid');
         const subjectId = lesson.getAttribute('subjectid');
         const subject = mappings.subjects[subjectId] || { name: 'Unknown', short: 'Unknown' };
         
-        // Skip HBL entries
         if (subject.name.includes('HBL') || subject.name.includes('Home Based Learning')) {
             return;
         }
@@ -163,18 +161,56 @@ function updatePreview(teacherId) {
             ? 'Multiple Classes'
             : classIds.map(id => mappings.classes[id]?.name || 'Unknown').join(', ');
 
+        const cards = xmlData.querySelectorAll(`card[lessonid="${lessonId}"]`);
+        
         cards.forEach(card => {
-            const roomId = card.getAttribute('classroomids').split(',')[0];
+            const roomId = card.getAttribute('classroomids')?.split(',')[0];
             const room = mappings.rooms[roomId] || { name: 'Unknown', short: 'Unknown' };
             const periodId = parseInt(card.getAttribute('period'));
-            const weeks = card.getAttribute('weeks');
             const daysPattern = card.getAttribute('days');
             const dayIndex = daysPattern.indexOf('1');
             
-            // Create a unique key for grouping
-            const key = `${dayIndex}-${weeks}-${lessonId}-${room.name}`;
-            
-            if (!lessonMap.has(key)) {
+            // For lessons that occur every week, create two entries
+            if (weeksdefId === '4CEEF5CAAC1CEE35') {
+                // Create odd week entry
+                const oddKey = `${dayIndex}-Odd Week-${lessonId}-${room.name}`;
+                lessonMap.set(oddKey, {
+                    day: dayIndex,
+                    startPeriod: periodId,
+                    endPeriod: periodId,
+                    subject: subject.name,
+                    subjectShort: subject.short,
+                    className: classNames,
+                    room: room.name,
+                    weekType: 'Every Week',
+                    isOddWeek: true
+                });
+
+                // Create even week entry
+                const evenKey = `${dayIndex}-Even Week-${lessonId}-${room.name}`;
+                lessonMap.set(evenKey, {
+                    day: dayIndex,
+                    startPeriod: periodId,
+                    endPeriod: periodId,
+                    subject: subject.name,
+                    subjectShort: subject.short,
+                    className: classNames,
+                    room: room.name,
+                    weekType: 'Every Week',
+                    isOddWeek: false
+                });
+            } else {
+                // Handle other week patterns as before
+                let weekType;
+                if (weeksdefId === 'F20BB99A3CE4D221') {
+                    weekType = 'Even Week';
+                } else if (weeksdefId === '1DE69DF37257B010') {
+                    weekType = 'Odd Week';
+                } else {
+                    weekType = card.getAttribute('weeks') === '10' ? 'Odd Week' : 'Even Week';
+                }
+                
+                const key = `${dayIndex}-${weekType}-${lessonId}-${room.name}`;
                 lessonMap.set(key, {
                     day: dayIndex,
                     startPeriod: periodId,
@@ -183,18 +219,29 @@ function updatePreview(teacherId) {
                     subjectShort: subject.short,
                     className: classNames,
                     room: room.name,
-                    weekType: weeks === '10' ? 'Odd Week' : 'Even Week',
-                    isOddWeek: weeks === '10'
+                    weekType: weekType,
+                    isOddWeek: weekType === 'Odd Week'
                 });
-            } else {
-                // Update end period if consecutive
-                const existing = lessonMap.get(key);
-                if (periodId === existing.endPeriod + 1) {
-                    existing.endPeriod = periodId;
-                } else if (periodId < existing.startPeriod) {
-                    // If we find an earlier period, update the start period
-                    existing.startPeriod = periodId;
+            }
+
+            // Update periods if consecutive
+            const updatePeriods = (entry) => {
+                if (periodId === entry.endPeriod + 1) {
+                    entry.endPeriod = periodId;
+                } else if (periodId < entry.startPeriod) {
+                    entry.startPeriod = periodId;
                 }
+            };
+
+            if (weeksdefId === '4CEEF5CAAC1CEE35') {
+                const oddKey = `${dayIndex}-Odd Week-${lessonId}-${room.name}`;
+                const evenKey = `${dayIndex}-Even Week-${lessonId}-${room.name}`;
+                updatePeriods(lessonMap.get(oddKey));
+                updatePeriods(lessonMap.get(evenKey));
+            } else {
+                const weekType = weeksdefId === 'F20BB99A3CE4D221' ? 'Even Week' : 'Odd Week';
+                const key = `${dayIndex}-${weekType}-${lessonId}-${room.name}`;
+                updatePeriods(lessonMap.get(key));
             }
         });
     });
@@ -246,77 +293,84 @@ function createTeacherCalendar(teacherId, startDate, endDate, startWeekType) {
     const lessons = xmlData.querySelectorAll(`lesson[teacherids*="${teacherId}"]`);
     console.log(`Found ${lessons.length} total lessons for teacher ${teacherId}`);
     
-    // Process first week only to create recurring events
     const firstWeekDate = new Date(startDate);
-    const processedEvents = new Set();
-
+    
     lessons.forEach(lesson => {
         const lessonId = lesson.getAttribute('id');
         const subjectId = lesson.getAttribute('subjectid');
         const subject = mappings.subjects[subjectId] || { name: 'Unknown', short: 'Unknown' };
+        const weeksdefId = lesson.getAttribute('weeksdefid');
         
         if (subject.name.includes('HBL') || subject.name.includes('Home Based Learning')) {
             return;
         }
 
         const cards = xmlData.querySelectorAll(`card[lessonid="${lessonId}"]`);
-        
-        // Group consecutive periods for each day
         const dayGroups = new Map();
         
         cards.forEach(card => {
-            const weeks = card.getAttribute('weeks');
             const daysPattern = card.getAttribute('days');
             const periodId = parseInt(card.getAttribute('period'));
             
-            // Process each day of the week
-            for (let dayIndex = 0; dayIndex < daysPattern.length; dayIndex++) {
-                if (daysPattern[dayIndex] !== '1') continue;
-                
-                const key = `${dayIndex}-${weeks}-${lessonId}`;
-                if (!dayGroups.has(key)) {
-                    dayGroups.set(key, {
-                        startPeriod: periodId,
-                        endPeriod: periodId,
-                        weeks,
-                        dayIndex,
-                        card
-                    });
-                } else {
-                    const group = dayGroups.get(key);
-                    if (periodId === group.endPeriod + 1) {
-                        group.endPeriod = periodId;
+            // Update week pattern handling
+            let weekPatterns;
+            if (weeksdefId === '4CEEF5CAAC1CEE35') {
+                // For every week lessons, use interval: 1 instead of patterns
+                weekPatterns = ['11'];
+            } else if (weeksdefId === 'F20BB99A3CE4D221') {
+                weekPatterns = ['01'];
+            } else if (weeksdefId === '1DE69DF37257B010') {
+                weekPatterns = ['10'];
+            } else {
+                weekPatterns = [card.getAttribute('weeks')];
+            }
+            
+            weekPatterns.forEach(weeks => {
+                for (let dayIndex = 0; dayIndex < daysPattern.length; dayIndex++) {
+                    if (daysPattern[dayIndex] !== '1') continue;
+                    
+                    const key = `${dayIndex}-${weeks}`;
+                    if (!dayGroups.has(key)) {
+                        dayGroups.set(key, {
+                            startPeriod: periodId,
+                            endPeriod: periodId,
+                            weeks,
+                            dayIndex,
+                            card
+                        });
+                    } else {
+                        const group = dayGroups.get(key);
+                        if (periodId === group.endPeriod + 1) {
+                            group.endPeriod = periodId;
+                        }
                     }
                 }
-            }
+            });
         });
 
-        // Create recurring events for each group
+        // Create events for each day group
         dayGroups.forEach((group) => {
-            const roomId = group.card.getAttribute('classroomids').split(',')[0];
+            const roomId = lesson.getAttribute('classroomids')?.split(',')[0];
             const room = mappings.rooms[roomId] || { name: 'Unknown', short: 'Unknown' };
             const classIds = (lesson.getAttribute('classids') || '').split(',').filter(Boolean);
             const classNames = classIds.length > 3 
                 ? 'Multiple Classes'
                 : classIds.map(id => mappings.classes[id]?.name || 'Unknown').join(', ');
 
-            // Calculate event time
             const eventDate = new Date(firstWeekDate);
             const startDayOfWeek = firstWeekDate.getDay();
             const targetDayIndex = group.dayIndex + 1;
             const daysToAdd = (targetDayIndex - startDayOfWeek + 7) % 7;
             eventDate.setDate(firstWeekDate.getDate() + daysToAdd);
-            
-            // Determine if this event falls in the next week
+
             const isNextWeek = daysToAdd >= (7 - startDayOfWeek);
-            
-            // Adjust start date based on week type, considering if the event falls in the next week
             const shouldStartNextWeek = 
                 (startWeekType === 'even' && group.weeks === '10' && !isNextWeek) || 
                 (startWeekType === 'odd' && group.weeks === '01' && !isNextWeek) ||
                 (startWeekType === 'even' && group.weeks === '01' && isNextWeek) ||
                 (startWeekType === 'odd' && group.weeks === '10' && isNextWeek);
 
+            // Calculate event times
             const startHour = Math.floor((group.startPeriod - 1) / 2) + 7;
             const startMinute = ((group.startPeriod - 1) % 2) * 30 + 30;
             const startTime = new Date(eventDate);
@@ -326,6 +380,11 @@ function createTeacherCalendar(teacherId, startDate, endDate, startWeekType) {
             const endHour = Math.floor((group.endPeriod - 1) / 2) + 7;
             const endTime = new Date(eventDate);
             endTime.setHours(endHour + Math.floor(totalMinutes / 60), totalMinutes % 60, 0);
+
+            if (shouldStartNextWeek) {
+                startTime.setDate(startTime.getDate() + 7);
+                endTime.setDate(endTime.getDate() + 7);
+            }
 
             const vevent = new ICAL.Component('vevent');
             vevent.addPropertyWithValue('summary', `${subject.name} (${classNames})`);
@@ -338,27 +397,17 @@ function createTeacherCalendar(teacherId, startDate, endDate, startWeekType) {
             vevent.addPropertyWithValue('status', 'CONFIRMED');
             vevent.addPropertyWithValue('uid', `${lessonId}-${group.dayIndex}-${group.weeks}`);
 
-            // Create recurrence rule using ICAL.Recur
-            const days = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
             const untilDate = new Date(endDate);
             untilDate.setHours(23, 59, 59);
 
+            // Update the recurrence rule based on week pattern
             const recur = new ICAL.Recur({
                 freq: 'WEEKLY',
-                interval: 2,
-                byday: [days[targetDayIndex]],
+                interval: weeksdefId === '4CEEF5CAAC1CEE35' ? 1 : 2,  // Use interval 1 for every week
+                byday: [['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'][targetDayIndex]],
                 until: ICAL.Time.fromJSDate(untilDate)
             });
 
-            // Use the previously calculated shouldStartNextWeek value
-            if (shouldStartNextWeek) {
-                startTime.setDate(startTime.getDate() + 7);
-                endTime.setDate(endTime.getDate() + 7);
-                vevent.updatePropertyWithValue('dtstart', ICAL.Time.fromJSDate(startTime));
-                vevent.updatePropertyWithValue('dtend', ICAL.Time.fromJSDate(endTime));
-            }
-
-            // Add the recurrence rule to the event
             vevent.addPropertyWithValue('rrule', recur);
             cal.addSubcomponent(vevent);
         });
@@ -412,6 +461,11 @@ function downloadICS(calendar, teacherShort) {
     window.URL.revokeObjectURL(url);
     document.body.removeChild(a);
 }
+
+// Add event listener for page load
+document.addEventListener('DOMContentLoaded', async () => {
+    await previewTimetable();
+});
 
 // Add event listener for teacher selection
 document.getElementById('teacherSelect')?.addEventListener('change', (e) => {
@@ -479,3 +533,22 @@ function processXML() {
         alert(`Failed to generate calendar for ${teacherInfo.name}. Please check if there are valid lessons in the selected date range.`);
     }
 }
+
+// Add this function near the top of your file
+function toggleInstructions() {
+    const instructions = document.getElementById('instructions');
+    const button = document.querySelector('button.secondary');
+    if (instructions.style.display === 'none') {
+        instructions.style.display = 'block';
+        button.textContent = 'Hide Instructions';
+    } else {
+        instructions.style.display = 'none';
+        button.textContent = 'Show Instructions';
+    }
+}
+
+// Add this near your other event listeners
+document.getElementById('xmlFile')?.addEventListener('change', (e) => {
+    const fileName = e.target.files[0]?.name || 'No file chosen';
+    document.querySelector('.file-name').textContent = fileName;
+});
