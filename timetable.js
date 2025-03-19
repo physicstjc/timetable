@@ -601,38 +601,7 @@ function processXML() {
 // Add this function near the top of your file
 function toggleInstructions() {
     const instructions = document.getElementById('instructions');
-    instructions.innerHTML = `
-        <h3>Instructions:</h3>
-        <ol>
-            <li>Select a teacher from the dropdown list</li>
-            <li>Choose the start and end dates for the timetable</li>
-            <li>Select whether the first week is an odd or even week</li>
-            <li>Click "Generate Calendar" to create the .ics file</li>
-            <li>To import to Google Calendar:
-                <ol>
-                    <li>First, create a new calendar:
-                        <ul>
-                            <li>Click the + next to "Other calendars"</li>
-                            <li>Select "Create new calendar"</li>
-                            <li>Name it appropriately (e.g., "School Timetable 2024")</li>
-                            <li>Click "Create calendar"</li>
-                        </ul>
-                    </li>
-                    <li>Then import the timetable:
-                        <ul>
-                            <li>Click the Settings icon (⚙️) in the top right</li>
-                            <li>In the left menu, click "Import & Export"</li>
-                            <li>Click "Select file from your computer" and choose your .ics file</li>
-                            <li>Select your newly created calendar</li>
-                            <li>Click "Import"</li>
-                        </ul>
-                    </li>
-                </ol>
-            </li>
-            <li>If you need to update the timetable later, you can simply delete the calendar and create a new one.</li>
-        </ol>`;
-    
-    const button = document.querySelector('button.secondary');
+    const button = document.querySelector('button[onclick="toggleInstructions()"]');
     if (instructions.style.display === 'none') {
         instructions.style.display = 'block';
         button.textContent = 'Hide Instructions';
