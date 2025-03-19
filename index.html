@@ -10,10 +10,15 @@
 </head>
 <body>
     <div class="container">
+        <!-- Remove footer from header -->
         <header>
             <h1>Timetable Calendar Generator</h1>
             <p class="subtitle">Generate iCal files from your timetable data so you can see it from your mobile devices!</p>
-            <button onclick="toggleInstructions()" class="button secondary">Show Instructions</button>
+            <div class="controls">
+                <button onclick="toggleInstructions()" class="control-button">
+                    Instructions
+                </button>
+            </div>
         </header>
 
         <div id="instructions" class="instructions-section" style="display: none;">
@@ -99,7 +104,8 @@
                 </div>
             </section>
 
-            <section class="input-section card admin-section">
+            <!-- Add id to the admin section -->
+            <section id="adminSection" class="input-section card admin-section" style="display: none;">
                 <div class="admin-header">
                     <h2>Admin Data Input</h2>
                     <span class="optional-tag">Optional</span>
@@ -114,8 +120,117 @@
             </section>
         </main>
     </div>
+    <!-- Move footer to the bottom, before closing body tag -->
+    </div>
+    <footer class="admin-controls">
+        <div class="footer-content">
+            <p class="update-info">Timetable last updated: 17 March 2025</p>
+            <p class="verification-note">Please verify against the official timetable. For any discrepancies, contact <a href="mailto:tan_seng_kwang@moe.edu.sg">the site owner</a>.</p>
+            <div class="admin-buttons">
+                <button onclick="window.location.href='compare.html'" class="admin-button">
+                    Timetable Comparison
+                </button>
+                <button onclick="toggleAdminSection()" class="admin-button">
+                    Admin Data Input
+                </button>
+            </div>
+        </div>
+    </footer>
+    <style>
+        .admin-controls {
+            display: flex;
+            justify-content: center;
+            padding: 20px 0;
+            border-top: 1px solid #eee;
+            margin-top: auto;
+            background: #f9f9f9;
+            width: 100%;
+        }
+        
+        .footer-content {
+            text-align: center;
+        }
+        
+        .update-info {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        
+        .verification-note {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        
+        .verification-note a {
+            color: #007AFF;
+            text-decoration: none;
+        }
+        
+        .verification-note a:hover {
+            text-decoration: underline;
+        }
+        
+        .admin-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .admin-button {
+            background: #f5f5f5;
+            color: #666;
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .admin-button:hover {
+            background: #e9e9e9;
+            color: #333;
+        }
+    </style>
     <script src="ical.min.js"></script>
     <script src="timetable.js" defer></script>
-    <div id="comparisonTable" class="table-container"></div>
 </body>
 </html>
+
+<script>
+    function toggleAdminSection() {
+        const adminSection = document.querySelector('.input-section.card.admin-section');
+        adminSection.style.display = adminSection.style.display === 'none' ? 'block' : 'none';
+    }
+</script>
+
+<style>
+    .admin-controls {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        padding: 20px 0;
+        border-top: 1px solid #eee;
+        margin-top: auto;
+        background: #f9f9f9;
+        width: 100%;
+    }
+    
+    .admin-button {
+        background: #f5f5f5;
+        color: #666;
+        padding: 8px 16px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+    
+    .admin-button:hover {
+        background: #e9e9e9;
+        color: #333;
+    }
+</style>
