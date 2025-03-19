@@ -155,16 +155,33 @@
             background: none;
             border: none;
             color: #94a3b8;
-            font-size: 0.8em;
+            font-size: 0.85em;
             padding: 4px 8px;
             cursor: pointer;
-            margin-left: 8px;
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .remove-all-btn::before {
+            content: '×';
+            font-size: 1.2em;
+            line-height: 1;
         }
 
         .remove-all-btn:hover {
-            color: #dc2626;
+            color: #64748b;
         }
 
+        /* Update selected-teachers container to properly align the button */
+        .selected-teachers {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 10px 0;
+            align-items: center;
+        }
         .back-link {
             text-align: center;
             margin-top: 20px;

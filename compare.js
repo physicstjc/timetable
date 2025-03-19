@@ -44,6 +44,7 @@ async function loadDefaultTimetable() {
 
         // After loading data, populate the department select
         populateDepartmentSelect();
+        updateTeacherCheckboxes(); // Add this line to show all teachers immediately
         updateSelectedTeachersList();
         updateComparison();
     } catch (error) {
@@ -54,7 +55,7 @@ async function loadDefaultTimetable() {
 
 function populateDepartmentSelect() {
     const departmentSelect = document.getElementById('departmentSelect');
-    departmentSelect.innerHTML = '<option value="">Select a department...</option>';
+    departmentSelect.innerHTML = '<option value="">All Departments</option>';
     
     // Sort departments alphabetically by their full names
     const sortedDepartments = Object.entries(departments).sort((a, b) => a[1].localeCompare(b[1]));
@@ -250,15 +251,10 @@ function updateTeacherCheckboxes() {
     const container = document.getElementById('teacherCheckboxes');
     container.innerHTML = '';
     
-    if (!department) {
-        container.classList.remove('visible');
-        return;
-    }
-
     container.classList.add('visible');
     
     Object.entries(mappings.teachers)
-        .filter(([, teacher]) => teacher.short.startsWith(`[${department}]`))
+        .filter(([, teacher]) => !department || teacher.short.startsWith(`[${department}]`))
         .sort(([, a], [, b]) => a.name.localeCompare(b.name))
         .forEach(([id, teacher]) => {
             const div = document.createElement('div');
