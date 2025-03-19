@@ -303,14 +303,15 @@ function applyTeacherFilter() {
 }
 
 // Update the removeTeacher function
-function removeTeacher(teacherId) {
+// Make removeTeacher globally accessible
+window.removeTeacher = function(teacherId) {
     selectedTeachers.delete(teacherId);
     localStorage.setItem('selectedTeachers', JSON.stringify([...selectedTeachers]));
     const checkbox = document.getElementById(`teacher-${teacherId}`);
     if (checkbox) checkbox.checked = false;
     updateSelectedTeachersList();
     updateComparison();
-}
+};
 
 function populateTeacherSelect() {
     const teacherSelect = document.getElementById('teacherSelect');
@@ -339,9 +340,31 @@ function addTeacher() {
     updateComparison();
 }
 
+// Add this new function
+window.removeAllTeachers = function() {
+    selectedTeachers.clear();
+    localStorage.setItem('selectedTeachers', JSON.stringify([...selectedTeachers]));
+    
+    // Uncheck all checkboxes
+    const checkboxes = document.querySelectorAll('#teacherCheckboxes input[type="checkbox"]');
+    checkboxes.forEach(checkbox => checkbox.checked = false);
+    
+    updateSelectedTeachersList();
+    updateComparison();
+};
+
 function updateSelectedTeachersList() {
     const container = document.getElementById('selectedTeachers');
     container.innerHTML = '';
+    
+    // Add the "Remove All" button if there are selected teachers
+    if (selectedTeachers.size > 0) {
+        const removeAllBtn = document.createElement('button');
+        removeAllBtn.className = 'remove-all-btn';
+        removeAllBtn.textContent = 'Remove All';
+        removeAllBtn.onclick = removeAllTeachers;
+        container.appendChild(removeAllBtn);
+    }
     
     selectedTeachers.forEach(teacherId => {
         const teacher = mappings.teachers[teacherId];
