@@ -105,6 +105,46 @@ async function loadDefaultXML() {
     }
 }
 
+// Add after the loadDefaultXML function
+const departments = {
+    'AA': 'Arts Aesthetics',
+    'AE': 'Arts Economics',
+    'AG': 'Arts Geography',
+    'AH': 'Arts History',
+    'AM': 'Arts Music',
+    'E': 'English',
+    'M': 'Mathematics',
+    'MT': 'Mother Tongue Languages',
+    'PE': 'Physical Education',
+    'PW': 'Project Work',
+    'SB': 'Science Biology',
+    'SC': 'Science Chemistry',
+    'SP': 'Science Physics'
+};
+
+// Modify the populateDepartmentSelect function
+function populateDepartmentSelect() {
+    const departmentSet = new Set();
+    Object.values(mappings.teachers).forEach(teacher => {
+        const match = teacher.short.match(/\[(.*?)\]/);
+        if (match && departments[match[1]]) {
+            departmentSet.add(match[1]);
+        }
+    });
+
+    const departmentSelect = document.getElementById('departmentSelect');
+    departmentSelect.innerHTML = '<option value="">All Departments</option>';
+    
+    Array.from(departmentSet)
+        .sort((a, b) => departments[a].localeCompare(departments[b]))
+        .forEach(dept => {
+            const option = document.createElement('option');
+            option.value = dept;
+            option.textContent = departments[dept];
+            departmentSelect.appendChild(option);
+        });
+}
+
 // Modify the previewTimetable function
 async function previewTimetable() {
     const fileInput = document.getElementById('xmlFile');
@@ -124,10 +164,9 @@ async function previewTimetable() {
             }
             mappings = getMappings(xmlData);
             
-            teacherSelect.innerHTML = '<option value="">Select a teacher...</option>' +
-                Object.entries(mappings.teachers)
-                    .map(([id, teacher]) => `<option value="${id}">${teacher.name} (${teacher.short})</option>`)
-                    .join('');
+            // Add department select population
+            populateDepartmentSelect();
+            updateTeacherSelect();
         }
 
         previewSection.style.display = 'block';
@@ -139,6 +178,31 @@ async function previewTimetable() {
         alert(`Error loading preview: ${error.message}`);
     }
 }
+
+// Add new function to update teacher select based on department
+function updateTeacherSelect() {
+    const departmentSelect = document.getElementById('departmentSelect');
+    const teacherSelect = document.getElementById('teacherSelect');
+    const selectedDepartment = departmentSelect.value;
+
+    teacherSelect.innerHTML = '<option value="">Select a teacher...</option>';
+    
+    Object.entries(mappings.teachers)
+        .filter(([, teacher]) => !selectedDepartment || teacher.short.includes(`[${selectedDepartment}]`))
+        .sort(([, a], [, b]) => a.name.localeCompare(b.name))
+        .forEach(([id, teacher]) => {
+            const option = document.createElement('option');
+            option.value = id;
+            option.textContent = teacher.name;
+            teacherSelect.appendChild(option);
+        });
+}
+
+// Add event listener for department selection
+document.addEventListener('DOMContentLoaded', async () => {
+    await previewTimetable();
+    document.getElementById('departmentSelect').addEventListener('change', updateTeacherSelect);
+});
 
 function updatePreview(teacherId) {
     const previewTable = document.getElementById('previewTable').getElementsByTagName('tbody')[0];
@@ -275,7 +339,7 @@ function updatePreview(teacherId) {
         <tr>
             <td>${days[entry.day]}</td>
             <td>${entry.startTime} - ${entry.endTime}</td>
-            <td>${entry.subject} (${entry.className})</td>
+            <td>${entry.subject}${entry.className ? ` (${entry.className})` : ''}</td>
             <td>${entry.room}</td>
             <td>${entry.weekType}</td>
         </tr>
@@ -537,6 +601,37 @@ function processXML() {
 // Add this function near the top of your file
 function toggleInstructions() {
     const instructions = document.getElementById('instructions');
+    instructions.innerHTML = `
+        <h3>Instructions:</h3>
+        <ol>
+            <li>Select a teacher from the dropdown list</li>
+            <li>Choose the start and end dates for the timetable</li>
+            <li>Select whether the first week is an odd or even week</li>
+            <li>Click "Generate Calendar" to create the .ics file</li>
+            <li>To import to Google Calendar:
+                <ol>
+                    <li>First, create a new calendar:
+                        <ul>
+                            <li>Click the + next to "Other calendars"</li>
+                            <li>Select "Create new calendar"</li>
+                            <li>Name it appropriately (e.g., "School Timetable 2024")</li>
+                            <li>Click "Create calendar"</li>
+                        </ul>
+                    </li>
+                    <li>Then import the timetable:
+                        <ul>
+                            <li>Click the Settings icon (⚙️) in the top right</li>
+                            <li>In the left menu, click "Import & Export"</li>
+                            <li>Click "Select file from your computer" and choose your .ics file</li>
+                            <li>Select your newly created calendar</li>
+                            <li>Click "Import"</li>
+                        </ul>
+                    </li>
+                </ol>
+            </li>
+            <li>If you need to update the timetable later, you can simply delete the calendar and create a new one.</li>
+        </ol>`;
+    
     const button = document.querySelector('button.secondary');
     if (instructions.style.display === 'none') {
         instructions.style.display = 'block';
