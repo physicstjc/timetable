@@ -40,10 +40,10 @@ function getMappings(xmlDoc) {
         };
     });
 
-    // Fix period mapping to use 'id' instead of 'period'
+    // Fix period mapping
     xmlDoc.querySelectorAll('period').forEach(period => {
-        mappings.periods[period.getAttribute('id')] = {
-            period: period.getAttribute('period'),
+        mappings.periods[period.getAttribute('period')] = {
+            id: period.getAttribute('id'),
             start: period.getAttribute('starttime'),
             end: period.getAttribute('endtime')
         };
@@ -226,114 +226,74 @@ function updatePreview(teacherId) {
             : classIds.map(id => mappings.classes[id]?.name || 'Unknown').join(', ');
 
         const cards = xmlData.querySelectorAll(`card[lessonid="${lessonId}"]`);
+        const periodGroups = new Map();
         
+        // First, group cards by day and week type
         cards.forEach(card => {
-            const roomId = card.getAttribute('classroomids')?.split(',')[0];
-            const room = mappings.rooms[roomId] || { name: 'Unknown', short: 'Unknown' };
             const periodId = parseInt(card.getAttribute('period'));
             const daysPattern = card.getAttribute('days');
             const dayIndex = daysPattern.indexOf('1');
+            const roomId = card.getAttribute('classroomids')?.split(',')[0];
+            const room = mappings.rooms[roomId] || { name: 'Unknown', short: 'Unknown' };
             
-            // For lessons that occur every week, create two entries
+            let weekTypes = [];
             if (weeksdefId === '4CEEF5CAAC1CEE35') {
-                // Create odd week entry
-                const oddKey = `${dayIndex}-Odd Week-${lessonId}-${room.name}`;
-                lessonMap.set(oddKey, {
-                    day: dayIndex,
-                    startPeriod: periodId,
-                    endPeriod: periodId,
-                    subject: subject.name,
-                    subjectShort: subject.short,
-                    className: classNames,
-                    room: room.name,
-                    weekType: 'Every Week',
-                    isOddWeek: true
-                });
-
-                // Create even week entry
-                const evenKey = `${dayIndex}-Even Week-${lessonId}-${room.name}`;
-                lessonMap.set(evenKey, {
-                    day: dayIndex,
-                    startPeriod: periodId,
-                    endPeriod: periodId,
-                    subject: subject.name,
-                    subjectShort: subject.short,
-                    className: classNames,
-                    room: room.name,
-                    weekType: 'Every Week',
-                    isOddWeek: false
-                });
+                weekTypes = ['Every Week'];
+            } else if (weeksdefId === 'F20BB99A3CE4D221') {
+                weekTypes = ['Even Week'];
+            } else if (weeksdefId === '1DE69DF37257B010') {
+                weekTypes = ['Odd Week'];
             } else {
-                // Handle other week patterns as before
-                let weekType;
-                if (weeksdefId === 'F20BB99A3CE4D221') {
-                    weekType = 'Even Week';
-                } else if (weeksdefId === '1DE69DF37257B010') {
-                    weekType = 'Odd Week';
+                weekTypes = [card.getAttribute('weeks') === '10' ? 'Odd Week' : 'Even Week'];
+            }
+            
+            weekTypes.forEach(weekType => {
+                const key = `${dayIndex}-${weekType}-${room.name}`;
+                if (!periodGroups.has(key)) {
+                    periodGroups.set(key, {
+                        periods: [periodId],
+                        day: dayIndex,
+                        weekType,
+                        room: room.name,
+                        subject: subject.name,
+                        className: classNames
+                    });
                 } else {
-                    weekType = card.getAttribute('weeks') === '10' ? 'Odd Week' : 'Even Week';
+                    periodGroups.get(key).periods.push(periodId);
                 }
-                
-                const key = `${dayIndex}-${weekType}-${lessonId}-${room.name}`;
-                lessonMap.set(key, {
-                    day: dayIndex,
-                    startPeriod: periodId,
-                    endPeriod: periodId,
-                    subject: subject.name,
-                    subjectShort: subject.short,
-                    className: classNames,
-                    room: room.name,
-                    weekType: weekType,
-                    isOddWeek: weekType === 'Odd Week'
-                });
-            }
+            });
+        });
 
-            // Update periods if consecutive
-            const updatePeriods = (entry) => {
-                if (periodId === entry.endPeriod + 1) {
-                    entry.endPeriod = periodId;
-                } else if (periodId < entry.startPeriod) {
-                    entry.startPeriod = periodId;
-                }
-            };
-
-            if (weeksdefId === '4CEEF5CAAC1CEE35') {
-                const oddKey = `${dayIndex}-Odd Week-${lessonId}-${room.name}`;
-                const evenKey = `${dayIndex}-Even Week-${lessonId}-${room.name}`;
-                updatePeriods(lessonMap.get(oddKey));
-                updatePeriods(lessonMap.get(evenKey));
-            } else {
-                const weekType = weeksdefId === 'F20BB99A3CE4D221' ? 'Even Week' : 'Odd Week';
-                const key = `${dayIndex}-${weekType}-${lessonId}-${room.name}`;
-                updatePeriods(lessonMap.get(key));
-            }
+        // Then, create lesson entries from grouped periods
+        periodGroups.forEach((group, key) => {
+            const sortedPeriods = group.periods.sort((a, b) => a - b);
+            const startPeriod = sortedPeriods[0];
+            const endPeriod = sortedPeriods[sortedPeriods.length - 1];
+            
+            const startPeriodInfo = mappings.periods[startPeriod];
+            const endPeriodInfo = mappings.periods[endPeriod];
+            
+            lessonMap.set(key, {
+                day: group.day,
+                startTime: startPeriodInfo?.start || '07:30',
+                endTime: endPeriodInfo?.end || '08:00',
+                subject: group.subject,
+                className: group.className,
+                room: group.room,
+                weekType: group.weekType,
+                isOddWeek: group.weekType === 'Odd Week',
+                startPeriod
+            });
         });
     });
 
-    // Convert periods to times and sort entries
-    const lessonEntries = Array.from(lessonMap.values()).map(entry => {
-        // Calculate start time from startPeriod
-        const startHour = Math.floor((entry.startPeriod - 1) / 2) + 7;
-        const startMinute = ((entry.startPeriod - 1) % 2) * 30 + 30;
-        const startTime = `${String(startHour + Math.floor(startMinute / 60)).padStart(2, '0')}:${String(startMinute % 60).padStart(2, '0')}`;
-        
-        // Calculate end time from endPeriod
-        const endMinutes = ((entry.endPeriod - 1) % 2) * 30 + 60;
-        const endHour = Math.floor((entry.endPeriod - 1) / 2) + 7;
-        const endTime = `${String(endHour + Math.floor(endMinutes / 60)).padStart(2, '0')}:${String(endMinutes % 60).padStart(2, '0')}`;
-        
-        return {
-            ...entry,
-            startTime,
-            endTime
-        };
-    }).sort((a, b) => {
+    // Sort and generate table content
+    const lessonEntries = Array.from(lessonMap.values()).sort((a, b) => {
         if (a.isOddWeek !== b.isOddWeek) return b.isOddWeek - a.isOddWeek;
         if (a.day !== b.day) return a.day - b.day;
         return a.startPeriod - b.startPeriod;
     });
 
-    // Generate table content
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
     const tableContent = lessonEntries.map(entry => `
         <tr>
@@ -414,7 +374,8 @@ function createTeacherCalendar(teacherId, startDate, endDate, startWeekType) {
 
         // Create events for each day group
         dayGroups.forEach((group) => {
-            const roomId = lesson.getAttribute('classroomids')?.split(',')[0];
+            // Get room from the card instead of the lesson
+            const roomId = group.card.getAttribute('classroomids')?.split(',')[0];
             const room = mappings.rooms[roomId] || { name: 'Unknown', short: 'Unknown' };
             const classIds = (lesson.getAttribute('classids') || '').split(',').filter(Boolean);
             const classNames = classIds.length > 3 
