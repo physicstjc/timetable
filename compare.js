@@ -91,8 +91,8 @@ function updateComparison() {
 
     const selectedDay = parseInt(document.getElementById('daySelect').value);
     const weekType = document.getElementById('weekType').value;
-    // Use the actual week patterns from the cards
-    const weekPattern = weekType === 'odd' ? '01' : '10';
+    // Reverse the week patterns to match the correct weeks
+    const weekPattern = weekType === 'odd' ? '10' : '01';
     const everyWeekPattern = '11'; // Pattern for every week
 
     // Create time slots array (7:30 AM to 6:00 PM)
@@ -177,6 +177,7 @@ function findLesson(teacherId, day, time, weekPattern, everyWeekPattern) {
     
     for (const lesson of lessons) {
         const lessonId = lesson.getAttribute('id');
+        const weeksdefId = lesson.getAttribute('weeksdefid');
         
         // Look for cards matching this specific lesson
         const cards = xmlData.querySelectorAll(
@@ -185,10 +186,19 @@ function findLesson(teacherId, day, time, weekPattern, everyWeekPattern) {
         
         // Check each card for matching week pattern and day
         const card = Array.from(cards).find(c => {
-            const cardWeeks = c.getAttribute('weeks');
             const cardDays = c.getAttribute('days');
-            return (cardWeeks === '4CEEF5CAAC1CEE35' || cardWeeks === weekPattern || cardWeeks === everyWeekPattern) 
-                   && cardDays?.charAt(day) === '1';
+            
+            // Handle different week patterns
+            if (weeksdefId === '4CEEF5CAAC1CEE35') {
+                return cardDays?.charAt(day) === '1'; // Every week
+            } else if (weeksdefId === 'F20BB99A3CE4D221') {
+                return cardDays?.charAt(day) === '1' && weekPattern === '01'; // Even week
+            } else if (weeksdefId === '1DE69DF37257B010') {
+                return cardDays?.charAt(day) === '1' && weekPattern === '10'; // Odd week
+            } else {
+                const cardWeeks = c.getAttribute('weeks');
+                return cardDays?.charAt(day) === '1' && cardWeeks === weekPattern;
+            }
         });
         
         if (card) {
