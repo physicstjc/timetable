@@ -208,8 +208,8 @@ function findLesson(teacherId, day, time, weekPattern, everyWeekPattern) {
             const room = mappings.rooms[roomId];
             const classIds = lesson.getAttribute('classids')?.split(',');
             
-            // Map class IDs to names, leave blank if unknown
-            const className = classIds?.length > 1 
+            // Map class IDs to names, show up to two classes
+            const className = classIds?.length > 2 
                 ? 'Multiple Classes'
                 : classIds?.map(id => {
                     return classIdMapping[id] || mappings.classes[id]?.name || '';
