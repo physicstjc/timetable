@@ -125,8 +125,10 @@ const departments = {
 // Modify the populateDepartmentSelect function
 function populateDepartmentSelect() {
     const departmentSet = new Set();
+    
+    // Extract unique department codes from teacher short names
     Object.values(mappings.teachers).forEach(teacher => {
-        const match = teacher.short.match(/\[(.*?)\]/);
+        const match = teacher.short.match(/\[(.*?)[\]}]/);  // Handle both ] and } as closing brackets
         if (match && departments[match[1]]) {
             departmentSet.add(match[1]);
         }
@@ -135,6 +137,7 @@ function populateDepartmentSelect() {
     const departmentSelect = document.getElementById('departmentSelect');
     departmentSelect.innerHTML = '<option value="">All Departments</option>';
     
+    // Sort departments by their full names and create options
     Array.from(departmentSet)
         .sort((a, b) => departments[a].localeCompare(departments[b]))
         .forEach(dept => {
@@ -188,7 +191,11 @@ function updateTeacherSelect() {
     teacherSelect.innerHTML = '<option value="">Select a teacher...</option>';
     
     Object.entries(mappings.teachers)
-        .filter(([, teacher]) => !selectedDepartment || teacher.short.includes(`[${selectedDepartment}]`))
+        .filter(([, teacher]) => {
+            if (!selectedDepartment) return true;
+            const match = teacher.short.match(/\[(.*?)[\]}]/);  // Handle both ] and } as closing brackets
+            return match && match[1] === selectedDepartment;
+        })
         .sort(([, a], [, b]) => a.name.localeCompare(b.name))
         .forEach(([id, teacher]) => {
             const option = document.createElement('option');
