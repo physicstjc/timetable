@@ -212,16 +212,62 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function updatePreview(teacherId) {
-    const previewTable = document.getElementById('previewTable').getElementsByTagName('tbody')[0];
-    const lessons = xmlData.querySelectorAll(`lesson[teacherids*="${teacherId}"]`);
+    const previewSection = document.getElementById('previewSection');
     
+    // Check if tables container exists, if not create it
+    let tablesContainer = document.getElementById('timetableTables');
+    if (!tablesContainer) {
+        tablesContainer = document.createElement('div');
+        tablesContainer.id = 'timetableTables';
+        previewSection.appendChild(tablesContainer);
+    }
+    
+    // Update only the tables container with odd/even week tables
+    tablesContainer.innerHTML = `
+        <div class="timetable-container">
+            <div class="week-table">
+                <h3 class="week-header">Odd Week</h3>
+                <table id="oddWeekTable" class="preview-table">
+                    <thead>
+                        <tr>
+                            <th>Day</th>
+                            <th>Time</th>
+                            <th>Subject</th>
+                            <th>Room</th>
+                            <th>Week Type</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="week-table">
+                <h3 class="week-header">Even Week</h3>
+                <table id="evenWeekTable" class="preview-table">
+                    <thead>
+                        <tr>
+                            <th>Day</th>
+                            <th>Time</th>
+                            <th>Subject</th>
+                            <th>Room</th>
+                            <th>Week Type</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    `;
+
+    const oddWeekTable = document.getElementById('oddWeekTable').getElementsByTagName('tbody')[0];
+    const evenWeekTable = document.getElementById('evenWeekTable').getElementsByTagName('tbody')[0];
+    const lessons = xmlData.querySelectorAll(`lesson[teacherids*="${teacherId}"]`);
     const lessonMap = new Map();
     
     lessons.forEach(lesson => {
         const lessonId = lesson.getAttribute('id');
-        const weeksdefId = lesson.getAttribute('weeksdefid');
         const subjectId = lesson.getAttribute('subjectid');
         const subject = mappings.subjects[subjectId] || { name: 'Unknown', short: 'Unknown' };
+        const weeksdefId = lesson.getAttribute('weeksdefid');
         
         if (subject.name.includes('HBL') || subject.name.includes('Home Based Learning')) {
             return;
@@ -233,76 +279,82 @@ function updatePreview(teacherId) {
             : classIds.map(id => mappings.classes[id]?.name || 'Unknown').join(', ');
 
         const cards = xmlData.querySelectorAll(`card[lessonid="${lessonId}"]`);
-        const periodGroups = new Map();
+        const dayGroups = new Map();
         
-        // First, group cards by day and week type
         cards.forEach(card => {
-            const periodId = parseInt(card.getAttribute('period'));
             const daysPattern = card.getAttribute('days');
-            const dayIndex = daysPattern.indexOf('1');
-            const roomId = card.getAttribute('classroomids')?.split(',')[0];
-            const room = mappings.rooms[roomId] || { name: 'Unknown', short: 'Unknown' };
+            const periodId = parseInt(card.getAttribute('period'));
+            const roomIds = (card.getAttribute('classroomids') || '').split(',').filter(Boolean);
+            const rooms = roomIds.map(id => mappings.rooms[id]?.name || 'Unknown');
+            const roomDisplay = rooms.length > 2 ? 'Multiple Venues' : rooms.join(' & ');
             
-            let weekTypes = [];
+            let weekPatterns;
             if (weeksdefId === '4CEEF5CAAC1CEE35') {
-                weekTypes = ['Every Week'];
+                weekPatterns = ['11'];
             } else if (weeksdefId === 'F20BB99A3CE4D221') {
-                weekTypes = ['Even Week'];
+                weekPatterns = ['01'];
             } else if (weeksdefId === '1DE69DF37257B010') {
-                weekTypes = ['Odd Week'];
+                weekPatterns = ['10'];
             } else {
-                weekTypes = [card.getAttribute('weeks') === '10' ? 'Odd Week' : 'Even Week'];
+                weekPatterns = [card.getAttribute('weeks')];
             }
             
-            weekTypes.forEach(weekType => {
-                const key = `${dayIndex}-${weekType}-${room.name}`;
-                if (!periodGroups.has(key)) {
-                    periodGroups.set(key, {
-                        periods: [periodId],
-                        day: dayIndex,
-                        weekType,
-                        room: room.name,
-                        subject: subject.name,
-                        className: classNames
-                    });
-                } else {
-                    periodGroups.get(key).periods.push(periodId);
+            weekPatterns.forEach(weeks => {
+                for (let dayIndex = 0; dayIndex < daysPattern.length; dayIndex++) {
+                    if (daysPattern[dayIndex] !== '1') continue;
+                    
+                    const key = `${dayIndex}-${weeks}-${roomDisplay}`;
+                    if (!dayGroups.has(key)) {
+                        dayGroups.set(key, {
+                            startPeriod: periodId,
+                            endPeriod: periodId,
+                            weeks,
+                            dayIndex,
+                            room: roomDisplay,
+                            subject: subject.name,
+                            className: classNames
+                        });
+                    } else {
+                        const group = dayGroups.get(key);
+                        if (periodId === group.endPeriod + 1) {
+                            group.endPeriod = periodId;
+                        }
+                    }
                 }
             });
         });
 
-        // Then, create lesson entries from grouped periods
-        periodGroups.forEach((group, key) => {
-            const sortedPeriods = group.periods.sort((a, b) => a - b);
-            const startPeriod = sortedPeriods[0];
-            const endPeriod = sortedPeriods[sortedPeriods.length - 1];
+        dayGroups.forEach((group, key) => {
+            const startPeriodInfo = mappings.periods[group.startPeriod];
+            const endPeriodInfo = mappings.periods[group.endPeriod];
             
-            const startPeriodInfo = mappings.periods[startPeriod];
-            const endPeriodInfo = mappings.periods[endPeriod];
+            const weekType = group.weeks === '11' ? 'Every Week' : 
+                           group.weeks === '10' ? 'Odd Week' : 
+                           group.weeks === '01' ? 'Even Week' : 'Every Week';
             
             lessonMap.set(key, {
-                day: group.day,
+                day: group.dayIndex,
                 startTime: startPeriodInfo?.start || '07:30',
                 endTime: endPeriodInfo?.end || '08:00',
                 subject: group.subject,
                 className: group.className,
                 room: group.room,
-                weekType: group.weekType,
-                isOddWeek: group.weekType === 'Odd Week',
-                startPeriod
+                weekType: weekType,
+                isOddWeek: weekType === 'Odd Week',
+                startPeriod: group.startPeriod
             });
         });
     });
 
-    // Sort and generate table content
     const lessonEntries = Array.from(lessonMap.values()).sort((a, b) => {
-        if (a.isOddWeek !== b.isOddWeek) return b.isOddWeek - a.isOddWeek;
         if (a.day !== b.day) return a.day - b.day;
         return a.startPeriod - b.startPeriod;
     });
 
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-    const tableContent = lessonEntries.map(entry => `
+    
+    // Create row HTML for a lesson entry
+    const createRow = entry => `
         <tr>
             <td>${days[entry.day]}</td>
             <td>${entry.startTime} - ${entry.endTime}</td>
@@ -310,9 +362,23 @@ function updatePreview(teacherId) {
             <td>${entry.room}</td>
             <td>${entry.weekType}</td>
         </tr>
-    `).join('');
-    
-    previewTable.innerHTML = tableContent || '<tr><td colspan="5">No lessons found for this teacher</td></tr>';
+    `;
+
+    // Filter and display lessons for each week
+    const oddWeekLessons = lessonEntries.filter(entry => 
+        entry.weekType === 'Odd Week' || entry.weekType === 'Every Week'
+    );
+    const evenWeekLessons = lessonEntries.filter(entry => 
+        entry.weekType === 'Even Week' || entry.weekType === 'Every Week'
+    );
+
+    oddWeekTable.innerHTML = oddWeekLessons.length ? 
+        oddWeekLessons.map(createRow).join('') : 
+        '<tr><td colspan="5">No lessons found for this week</td></tr>';
+
+    evenWeekTable.innerHTML = evenWeekLessons.length ? 
+        evenWeekLessons.map(createRow).join('') : 
+        '<tr><td colspan="5">No lessons found for this week</td></tr>';
 }
 
 function createTeacherCalendar(teacherId, startDate, endDate, startWeekType) {
