@@ -273,6 +273,11 @@ function updatePreview(teacherId) {
             return;
         }
 
+        const classIds = (lesson.getAttribute('classids') || '').split(',').filter(Boolean);
+        const classNames = classIds.length > 3 
+            ? 'Multiple Classes'
+            : classIds.map(id => mappings.classes[id]?.name || 'Unknown').join(', ');
+
         const cards = xmlData.querySelectorAll(`card[lessonid="${lessonId}"]`);
         const dayGroups = new Map();
         
@@ -305,7 +310,9 @@ function updatePreview(teacherId) {
                             endPeriod: periodId,
                             weeks,
                             dayIndex,
-                            card
+                            room: roomDisplay,
+                            subject: subject.name,
+                            className: classNames
                         });
                     } else {
                         const group = dayGroups.get(key);
@@ -440,11 +447,9 @@ function createTeacherCalendar(teacherId, startDate, endDate, startWeekType) {
 
         // Create events for each day group
         dayGroups.forEach((group) => {
-            // Update room handling to match preview style
-            const roomIds = group.card.getAttribute('classroomids')?.split(',').filter(Boolean);
-            const rooms = roomIds.map(id => mappings.rooms[id]?.name || 'Unknown');
-            const roomDisplay = rooms.length > 2 ? 'Multiple Venues' : rooms.join(' & ');
-            
+            // Get room from the card instead of the lesson
+            const roomId = group.card.getAttribute('classroomids')?.split(',')[0];
+            const room = mappings.rooms[roomId] || { name: 'Unknown', short: 'Unknown' };
             const classIds = (lesson.getAttribute('classids') || '').split(',').filter(Boolean);
             const classNames = classIds.length > 3 
                 ? 'Multiple Classes'
@@ -485,7 +490,7 @@ function createTeacherCalendar(teacherId, startDate, endDate, startWeekType) {
                 .setParameter('tzid', 'Asia/Singapore');
             vevent.addPropertyWithValue('dtend', ICAL.Time.fromJSDate(endTime))
                 .setParameter('tzid', 'Asia/Singapore');
-            vevent.addPropertyWithValue('location', roomDisplay);
+            vevent.addPropertyWithValue('location', room.name);
             vevent.addPropertyWithValue('description', classNames);
             vevent.addPropertyWithValue('status', 'CONFIRMED');
             vevent.addPropertyWithValue('uid', `${lessonId}-${group.dayIndex}-${group.weeks}`);
