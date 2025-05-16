@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendar Generator (for 2025 Term 2 Week 10 Special Timetable)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/ical.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Remove footer from header -->
+        <header>
+            <h1>Timetable Calendar Generator (beta)</h1>
+            <p class="subtitle">Generate iCal files from your timetable data so you can see it from your mobile devices!</p>
+            <div class="controls">
+                <button onclick="toggleInstructions()" class="control-button">
+                    Instructions
+                </button>
+            </div>
+        </header>
+
+        <div id="instructions" class="instructions-section" style="display: none;">
+            <div class="card">
+                <h2>Instructions</h2>
+                <div class="instruction-steps">
+                    <h3>Step 1: Generate your timetable (.ics file)</h3>
+                    <ol>
+                        <li>Select your name from the drop-down menu above.</li>
+                        <li>The default dates are set for Term 2 (24/03/2025 to 30/05/2025).</li>
+                        <li>You can modify the dates if needed.</li>
+                        <li>Select whether your start date falls on an Odd or Even week.</li>
+                        <li>Click <strong>Generate Calendar</strong> and note where the .ics file is saved.</li>
+                    </ol>
+
+                    <h3>Step 2: Import to Google Calendar</h3>
+                    <ol>
+                        <li>Open <a href="https://calendar.google.com" target="_blank">Google Calendar</a></li>
+                        <li>Under <strong>Other calendars</strong> on the left menu, click on the + button and <strong>Create New Calendar</strong>. This way, if your timetable changes significantly, you only need to delete this calendar and import a new one instead of changing the events one by one.</li>
+                        <img src="images/add-calendar.png" alt="Add Calendar Instructions" width="240px">
+                        <li>Give the calendar a name, e.g. "Term 2" and click <strong>Create calendar</strong>.</li>
+                        <li>In the left menu, click <strong>Import & Export</strong></li>
+                        <li>In the drop-down menu <strong>Add to calendar</strong>, select the new calendar you just created.</li>
+                        <li>Click <strong>Select file from your computer</strong> and choose your .ics file</li>
+                        <li>Click <strong>Import</strong>.</li>
+                        <li>You should be able to see the new calendar in addition to your existing calendars.</li>
+                        <img src="images/view-timetables.png" alt="View Timetables Instructions" width="240px">
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <main>
+            <section id="previewSection" class="preview-section card">
+                <h2>Generate Preview</h2>
+                <div class="form-grid">
+                    <!-- Add this before the teacher select -->
+                    <div class="form-group">
+                        <label for="departmentSelect">Department:</label>
+                        <select id="departmentSelect" class="select-input">
+                            <option value="">All Departments</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="teacherSelect">Select Teacher:</label>
+                        <select id="teacherSelect" class="select-input"></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="startDate">Start Date:</label>
+                        <input type="date" id="startDate" class="date-input" value="2025-03-24">
+                    </div>
+                    <div class="form-group">
+                        <label for="endDate">End Date:</label>
+                        <input type="date" id="endDate" class="date-input" value="2025-05-30">
+                    </div>
+                    <div class="form-group">
+                        <label for="weekType">Starting Week Type:</label>
+                        <select id="weekType" class="select-input">
+                            <option value="odd">Odd Week</option>
+                            <option value="even">Even Week</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button onclick="processXML()" class="button primary">Generate Calendar</button>
+                    <p id="progress" class="progress-text"></p>
+                </div>
+            </section>
+
+            <!-- Add id to the admin section -->
+            <section id="adminSection" class="input-section card admin-section" style="display: none;">
+                <div class="admin-header">
+                    <h2>Admin Data Input</h2>
+                    <span class="optional-tag">Optional</span>
+                </div>
+                <p class="admin-description">This section is for administrative purposes only. Use it to upload a custom XML file if needed. Do note that the XML file is not saved.</p>
+                <div class="file-input-wrapper">
+                    <input type="file" id="xmlFile" accept=".xml" class="file-input">
+                    <label for="xmlFile" class="file-label">Choose XML File</label>
+                    <span class="file-name">No file chosen</span>
+                </div>
+                <button onclick="previewTimetable()" class="button secondary">Preview Timetable</button>
+            </section>
+        </main>
+    </div>
+    <!-- Move footer to the bottom, before closing body tag -->
+    </div>
+    <footer class="admin-controls">
+        <div class="footer-content">
+            <p class="update-info">Timetable last updated: 1 April 2025</p>
+            <p class="verification-note">Please verify against the official timetable. For any discrepancies, contact <a href="mailto:tan_seng_kwang@moe.edu.sg">the site owner</a>.</p>
+            <div class="admin-buttons">
+                <button onclick="window.location.href='compare.html'" class="admin-button">
+                    Timetable Comparison
+                </button>
+                <button onclick="toggleAdminSection()" class="admin-button">
+                    Admin Data Input
+                </button>
+            </div>
+            <p class="other-apps-link" style="margin-top: 15px;">
+                <a href="https://physicstjc.github.io/apps/" style="color: #007AFF; text-decoration: none;">
+                    View Other Productivity Apps →
+                </a>
+            </p>
+        </div>
+    </footer>
+    <style>
+        .admin-controls {
+            display: flex;
+            justify-content: center;
+            padding: 20px 0;
+            border-top: 1px solid #eee;
+            margin-top: auto;
+            background: #f9f9f9;
+            width: 100%;
+        }
+        
+        .footer-content {
+            text-align: center;
+        }
+        
+        .update-info {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        
+        .verification-note {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        
+        .verification-note a {
+            color: #007AFF;
+            text-decoration: none;
+        }
+        
+        .verification-note a:hover {
+            text-decoration: underline;
+        }
+        
+        .admin-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .admin-button {
+            background: #f5f5f5;
+            color: #666;
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .admin-button:hover {
+            background: #e9e9e9;
+            color: #333;
+        }
+    </style>
+    <script src="ical.min.js"></script>
+    <script src="timetable.js" defer></script>
+</body>
+</html>
+
+<script>
+    function toggleAdminSection() {
+        const adminSection = document.querySelector('.input-section.card.admin-section');
+        adminSection.style.display = adminSection.style.display === 'none' ? 'block' : 'none';
+    }
+</script>
+
+<style>
+    .admin-controls {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        padding: 20px 0;
+        border-top: 1px solid #eee;
+        margin-top: auto;
+        background: #f9f9f9;
+        width: 100%;
+    }
+    
+    .admin-button {
+        background: #f5f5f5;
+        color: #666;
+        padding: 8px 16px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+    
+    .admin-button:hover {
+        background: #e9e9e9;
+        color: #333;
+    }
+</style>
