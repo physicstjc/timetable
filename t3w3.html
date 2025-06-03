@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Timetable Calendar Generator (T3W4-10 Timetable)</title>
+    <title>Timetable Calendar Generator (T3W3 Timetable)</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/ical.js"></script>
@@ -12,11 +12,11 @@
     <div class="container">
         <!-- Remove footer from header -->
         <header>
-            <h1>Timetable Calendar Generator (T3W4-10 Timetable)</h1>
+            <h1>Timetable Calendar Generator (T3W3 Special Timetable)</h1>
             <p class="subtitle">Generate iCal files from your timetable data so you can see it from your mobile devices!</p>
             <p>For week 1-2 special timetable, please click <a href="t3w1-2.html">here</a>.</p>
             <p>For week 3 special timetable, please click <a href="t3w3.html">here</a>.</p>
-            <p>For week 4-10 timetable, please click <a href="index.html">here</a>.</p>                
+            <p>For week 4-10 special timetable, please click <a href="index.html">here</a>.</p>     
             <div class="controls">
                 <button onclick="toggleInstructions()" class="control-button">
                     Instructions
@@ -71,16 +71,15 @@
                     </div>
                     <div class="form-group">
                         <label for="startDate">Start Date:</label>
-                        <input type="date" id="startDate" class="date-input" value="2025-07-21">
+                        <input type="date" id="startDate" class="date-input" value="2025-07-14">
                     </div>
                     <div class="form-group">
                         <label for="endDate">End Date:</label>
-                        <input type="date" id="endDate" class="date-input" value="2025-09-04">
+                        <input type="date" id="endDate" class="date-input" value="2025-07-18">
                     </div>
                     <div class="form-group">
                         <label for="weekType">Starting Week Type:</label>
                         <select id="weekType" class="select-input">
-                            <option value="even">Even Week</option>
                             <option value="odd">Odd Week</option>
                         </select>
                     </div>
@@ -109,6 +108,7 @@
         </main>
     </div>
     <!-- Move footer to the bottom, before closing body tag -->
+
     <footer class="admin-controls">
         <div class="footer-content">
             <p class="update-info">Timetable last updated: 3 Jun 2025</p>
@@ -187,7 +187,7 @@
         }
     </style>
     <script src="ical.min.js"></script>
-    <script src="timetable.js" defer></script>
+    <script src="t3w3.js" defer></script>
 </body>
 </html>
 

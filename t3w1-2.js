@@ -91,7 +91,7 @@ function getMappings(xmlDoc) {
 // Add at the beginning of the file
 async function loadDefaultXML() {
     try {
-        const response = await fetch('/timetables/2025_term3_week4-10.xml');
+        const response = await fetch('/timetables/2025_term3_week1-2.xml');
         const xmlText = await response.text();
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
@@ -240,7 +240,7 @@ function updatePreview(teacherId) {
                     <tbody></tbody>
                 </table>
             </div>
-            <div class="week-table">
+             <div class="week-table">
                 <h3 class="week-header">Even Week</h3>
                 <table id="evenWeekTable" class="preview-table">
                     <thead>

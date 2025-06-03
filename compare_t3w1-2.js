@@ -14,7 +14,7 @@ let selectedTeachers = new Set(JSON.parse(localStorage.getItem('selectedTeachers
 // Modify the loadDefaultTimetable function to update the UI after loading
 async function loadDefaultTimetable() {
     try {
-        const response = await fetch('/timetables/2025_term3_week4-10.xml');
+        const response = await fetch('/timetables/2025_term3_week1-2.xml');
         const text = await response.text();
         const parser = new DOMParser();
         xmlData = parser.parseFromString(text, 'text/xml');
