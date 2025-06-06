@@ -553,17 +553,29 @@ function downloadICS(calendar, teacherShort) {
     document.body.removeChild(a);
 }
 
-// Add event listener for page load
 document.addEventListener('DOMContentLoaded', async () => {
     await previewTimetable();
+
+    const teacherSelect = document.getElementById('teacherSelect');
+    if (!teacherSelect) return;
+
+    // Load stored selection
+    const storedTeacherId = localStorage.getItem('selectedTeacher');
+    if (storedTeacherId) {
+        teacherSelect.value = storedTeacherId;
+        updatePreview(storedTeacherId);
+    }
+
+    // Handle selection changes
+    teacherSelect.addEventListener('change', (e) => {
+        const selectedTeacherId = e.target.value;
+        if (!selectedTeacherId) return;
+
+        localStorage.setItem('selectedTeacher', selectedTeacherId);
+        updatePreview(selectedTeacherId);
+    });
 });
 
-// Add event listener for teacher selection
-document.getElementById('teacherSelect')?.addEventListener('change', (e) => {
-    if (e.target.value) {
-        updatePreview(e.target.value);
-    }
-});
 
 
 function processXML() {
