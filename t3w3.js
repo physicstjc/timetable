@@ -496,20 +496,7 @@ function createTeacherCalendar(teacherId, startDate, endDate, startWeekType) {
             vevent.addPropertyWithValue('location', roomDisplay);
             vevent.addPropertyWithValue('description', classNames);
             vevent.addPropertyWithValue('status', 'CONFIRMED');
-            vevent.addPropertyWithValue('uid', `t3w3-${lessonId}-${group.dayIndex}-${group.weeks}`);
-
-            const untilDate = new Date(endDate);
-            untilDate.setHours(23, 59, 59);
-
-            // Update the recurrence rule based on week pattern
-            const recur = new ICAL.Recur({
-                freq: 'WEEKLY',
-                interval: weeksdefId === '4CEEF5CAAC1CEE35' ? 1 : 2,  // Use interval 1 for every week
-                byday: [['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'][targetDayIndex]],
-                until: ICAL.Time.fromJSDate(untilDate)
-            });
-
-            vevent.addPropertyWithValue('rrule', recur);
+            vevent.addPropertyWithValue('uid', `t3w12-${lessonId}-${group.dayIndex}-${group.weeks}`);
             cal.addSubcomponent(vevent);
         });
     });
