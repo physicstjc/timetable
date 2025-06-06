@@ -495,7 +495,7 @@ function createTeacherCalendar(teacherId, startDate, endDate, startWeekType) {
             vevent.addPropertyWithValue('location', roomDisplay);
             vevent.addPropertyWithValue('description', classNames);
             vevent.addPropertyWithValue('status', 'CONFIRMED');
-            vevent.addPropertyWithValue('uid', `${lessonId}-${group.dayIndex}-${group.weeks}`);
+            vevent.addPropertyWithValue('uid', `t3w1-2-${lessonId}-${group.dayIndex}-${group.weeks}`);
 
             const untilDate = new Date(endDate);
             untilDate.setHours(23, 59, 59);
