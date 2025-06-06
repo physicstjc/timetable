@@ -222,7 +222,7 @@ function updatePreview(teacherId) {
         previewSection.appendChild(tablesContainer);
     }
     
-    // Update only the tables container with odd/even week tables
+    // Update only the tables container with odd week table
     tablesContainer.innerHTML = `
         <div class="timetable-container">
             <div class="week-table">
@@ -240,27 +240,11 @@ function updatePreview(teacherId) {
                     <tbody></tbody>
                 </table>
             </div>
-            
-            <div class="week-table">
-                <h3 class="week-header">Even Week</h3>
-                <table id="evenWeekTable" class="preview-table">
-                    <thead>
-                        <tr>
-                            <th>Day</th>
-                            <th>Time</th>
-                            <th>Subject</th>
-                            <th>Room</th>
-                            <th>Week Type</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
         </div>
     `;
 
     const oddWeekTable = document.getElementById('oddWeekTable').getElementsByTagName('tbody')[0];
-    const evenWeekTable = document.getElementById('evenWeekTable').getElementsByTagName('tbody')[0];
+    // const evenWeekTable = document.getElementById('evenWeekTable').getElementsByTagName('tbody')[0]; // Remove even week table reference
     const lessons = xmlData.querySelectorAll(`lesson[teacherids*="${teacherId}"]`);
     const lessonMap = new Map();
     
@@ -369,17 +353,17 @@ function updatePreview(teacherId) {
     const oddWeekLessons = lessonEntries.filter(entry => 
         entry.weekType === 'Odd Week' || entry.weekType === 'Every Week'
     );
-    const evenWeekLessons = lessonEntries.filter(entry => 
-        entry.weekType === 'Even Week' || entry.weekType === 'Every Week'
-    );
+    // const evenWeekLessons = lessonEntries.filter(entry => 
+    //     entry.weekType === 'Even Week' || entry.weekType === 'Every Week'
+    // ); // Remove even week lessons filtering
 
     oddWeekTable.innerHTML = oddWeekLessons.length ? 
         oddWeekLessons.map(createRow).join('') : 
         '<tr><td colspan="5">No lessons found for this week</td></tr>';
 
-    evenWeekTable.innerHTML = evenWeekLessons.length ? 
-        evenWeekLessons.map(createRow).join('') : 
-        '<tr><td colspan="5">No lessons found for this week</td></tr>';
+    // evenWeekTable.innerHTML = evenWeekLessons.length ? 
+    //     evenWeekLessons.map(createRow).join('') : 
+    //     '<tr><td colspan="5">No lessons found for this week</td></tr>'; // Remove populating even week table
 }
 
 function createTeacherCalendar(teacherId, startDate, endDate, startWeekType) {
@@ -458,6 +442,11 @@ function createTeacherCalendar(teacherId, startDate, endDate, startWeekType) {
                 ? 'Multiple Classes'
                 : classIds.map(id => mappings.classes[id]?.name || 'Unknown').join(', ');
 
+            // Only process for Odd Week ('10') or Every Week ('11')
+            if (group.weeks !== '10' && group.weeks !== '11') {
+                return; // Skip if not odd week or every week
+            }
+
             const eventDate = new Date(firstWeekDate);
             const startDayOfWeek = firstWeekDate.getDay();
             const targetDayIndex = group.dayIndex + 1;
@@ -497,6 +486,20 @@ function createTeacherCalendar(teacherId, startDate, endDate, startWeekType) {
             vevent.addPropertyWithValue('description', classNames);
             vevent.addPropertyWithValue('status', 'CONFIRMED');
             vevent.addPropertyWithValue('uid', `t3w12-${lessonId}-${group.dayIndex}-${group.weeks}`);
+            // Remove recurrence rule by not adding it
+            // if (group.weeks === '11') { // Every Week
+            //     vevent.addPropertyWithValue('rrule', {
+            //         freq: 'WEEKLY',
+            //         interval: 1,
+            //         until: ICAL.Time.fromJSDate(new Date(endDate))
+            //     });
+            // } else if (group.weeks === '10' || group.weeks === '01') { // Odd or Even Week
+            //     vevent.addPropertyWithValue('rrule', {
+            //         freq: 'WEEKLY',
+            //         interval: 2,
+            //         until: ICAL.Time.fromJSDate(new Date(endDate))
+            //     });
+            // }
             cal.addSubcomponent(vevent);
         });
     });
