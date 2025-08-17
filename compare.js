@@ -241,6 +241,66 @@ function updateWeekType() {
 // At the top of compare.js, add:
 import { classIdMapping } from './mappings.js';
 
+// Add search functionality
+function setupSearchFunctionality() {
+    const searchInput = document.getElementById('teacherSearch');
+    const clearButton = document.getElementById('clearSearch');
+    
+    searchInput.addEventListener('input', filterTeachers);
+    clearButton.addEventListener('click', clearSearch);
+    
+    // Show/hide clear button based on input content
+    searchInput.addEventListener('input', function() {
+        clearButton.style.display = this.value ? 'block' : 'none';
+    });
+}
+
+function filterTeachers() {
+    const searchTerm = document.getElementById('teacherSearch').value.toLowerCase();
+    const department = document.getElementById('departmentSelect').value;
+    const container = document.getElementById('teacherCheckboxes');
+    const checkboxItems = container.querySelectorAll('.teacher-checkbox-item');
+    
+    let hasVisibleResults = false;
+    
+    checkboxItems.forEach(item => {
+        const label = item.querySelector('label');
+        const teacherName = label.textContent.toLowerCase();
+        
+        const matchesSearch = !searchTerm || teacherName.includes(searchTerm);
+        
+        if (matchesSearch) {
+            item.classList.remove('hidden');
+            hasVisibleResults = true;
+        } else {
+            item.classList.add('hidden');
+        }
+    });
+    
+    // Show/hide "no results" message
+    let noResultsMsg = container.querySelector('.no-results');
+    if (!hasVisibleResults && (searchTerm || department)) {
+        if (!noResultsMsg) {
+            noResultsMsg = document.createElement('div');
+            noResultsMsg.className = 'no-results';
+            noResultsMsg.textContent = 'No teachers found matching your search.';
+            container.appendChild(noResultsMsg);
+        }
+        noResultsMsg.style.display = 'block';
+    } else if (noResultsMsg) {
+        noResultsMsg.style.display = 'none';
+    }
+}
+
+function clearSearch() {
+    const searchInput = document.getElementById('teacherSearch');
+    const clearButton = document.getElementById('clearSearch');
+    
+    searchInput.value = '';
+    clearButton.style.display = 'none';
+    filterTeachers(); // Re-filter to show all teachers
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     loadDefaultTimetable();
     
@@ -252,7 +312,13 @@ document.addEventListener('DOMContentLoaded', () => {
     daySelect.addEventListener('change', updateComparison);
     document.getElementById('weekType').addEventListener('change', updateComparison);
     
-    document.getElementById('departmentSelect').addEventListener('change', updateTeacherCheckboxes);
+    document.getElementById('departmentSelect').addEventListener('change', () => {
+        updateTeacherCheckboxes();
+        filterTeachers(); // Apply search filter after department change
+    });
+    
+    // Setup search functionality
+    setupSearchFunctionality();
 });
 
 // Modify the updateTeacherCheckboxes function
@@ -300,6 +366,9 @@ function updateTeacherCheckboxes() {
             div.appendChild(label);
             container.appendChild(div);
         });
+    
+    // Apply search filter after updating checkboxes
+    filterTeachers();
 }
 
 // Remove the applyTeacherFilter function since it's no longer needed
