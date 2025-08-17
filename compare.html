@@ -27,6 +27,46 @@
             display: flex;
             gap: 10px;
             margin-bottom: 15px;
+            align-items: flex-start;
+        }
+        .search-container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .search-input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 250px;
+        }
+        .search-input:focus {
+            outline: none;
+            border-color: #007AFF;
+            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);
+        }
+        .search-clear {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            display: none;
+        }
+        .search-clear:hover {
+            color: #666;
+        }
+        .search-input:not(:placeholder-shown) + .search-clear {
+            display: block;
         }
         select, input {
             padding: 8px;
@@ -135,6 +175,9 @@
         .teacher-checkbox-item input[type="checkbox"] {
             margin: 0;
         }
+        .teacher-checkbox-item.hidden {
+            display: none;
+        }
         .lesson-content {
             padding: 5px;
             text-align: left;
@@ -211,6 +254,12 @@
             font-size: 1.1em;
             margin-bottom: 2rem;
         }
+        .no-results {
+            padding: 10px;
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
@@ -226,6 +275,10 @@
                 <select id="departmentSelect">
                     <option value="">Select a department...</option>
                 </select>
+                <div class="search-container">
+                    <input type="text" id="teacherSearch" class="search-input" placeholder="Search teachers by name...">
+                    <button type="button" class="search-clear" id="clearSearch">&times;</button>
+                </div>
                 <div id="teacherCheckboxes" class="teacher-checkboxes"></div>
                 <!-- Remove the Apply Filter button -->
             </div>
