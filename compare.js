@@ -382,14 +382,28 @@ function deleteSelectedGroup() {
     alert(`Group "${groupName}" deleted successfully.`);
 }
 
-function deleteGroup(groupName) {
-    if (!confirm(`Are you sure you want to delete the group "${groupName}"?`)) {
-        return;
-    }
+function removeGroupFromSelection(groupName) {
+    const group = savedGroups[groupName];
+    if (!group) return;
     
-    delete savedGroups[groupName];
-    localStorage.setItem('teacherGroups', JSON.stringify(savedGroups));
-    updateGroupManagement();
+    // Remove all teachers from this group from current selection
+    group.teachers.forEach(teacherId => {
+        selectedTeachers.delete(teacherId);
+    });
+    
+    // Update localStorage and UI
+    localStorage.setItem('selectedTeachers', JSON.stringify([...selectedTeachers]));
+    
+    // Update checkboxes
+    const checkboxes = document.querySelectorAll('#teacherCheckboxes input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        if (group.teachers.includes(checkbox.value)) {
+            checkbox.checked = false;
+        }
+    });
+    
+    updateSelectedTeachersList();
+    updateComparison();
 }
 
 function updateGroupManagement() {
@@ -428,8 +442,8 @@ function updateSavedGroupsList() {
         const tag = document.createElement('div');
         tag.className = 'group-tag';
         tag.innerHTML = `
-            <span onclick="loadGroup('${groupName}')">${groupName} (${group.teachers.length})</span>
-            <span class="delete-group" onclick="deleteGroup('${groupName}')" title="Delete group">&times;</span>
+            <span onclick="loadGroup('${groupName}')" title="Click to load this group">${groupName} (${group.teachers.length})</span>
+            <span class="delete-group" onclick="deleteGroup('${groupName}')" title="Delete this saved group permanently">×</span>
         `;
         container.appendChild(tag);
     });
@@ -688,7 +702,7 @@ function updateSelectedTeachersList() {
         tag.className = 'teacher-tag';
         tag.innerHTML = `
             ${teacher.name} [${teacher.short}]
-            <span class="remove-teacher" onclick="removeTeacher('${teacherId}')">&times;</span>
+            <span class="remove-teacher" onclick="removeTeacher('${teacherId}')" title="Remove teacher from selection">&times;</span>
         `;
         container.appendChild(tag);
     });
