@@ -214,7 +214,9 @@ function findLesson(teacherId, day, time, weekPattern, everyWeekPattern) {
             const className = classIds?.length > 2 
                 ? 'Multiple Classes'
                 : classIds?.map(id => {
-                    return classIdMapping[id] || mappings.classes[id]?.name || '';
+                    // Use classIdMapping if available, otherwise fall back to mappings.classes
+                    return (typeof classIdMapping !== 'undefined' ? classIdMapping[id] : null) || 
+                           mappings.classes[id]?.name || '';
                 }).join(', ') || '';
 
             return {
@@ -241,7 +243,8 @@ function updateWeekType() {
 }
 
 // At the top of compare.js, add:
-import { classIdMapping } from './mappings.js';
+// import { classIdMapping } from './mappings.js';
+// Note: classIdMapping will be loaded from mappings.js if available
 
 // Add search functionality
 function setupSearchFunctionality() {
@@ -371,15 +374,7 @@ function deleteSelectedGroup() {
         return;
     }
     
-    if (!confirm(`Are you sure you want to delete the group "${groupName}"?`)) {
-        return;
-    }
-    
-    delete savedGroups[groupName];
-    localStorage.setItem('teacherGroups', JSON.stringify(savedGroups));
-    
-    updateGroupManagement();
-    alert(`Group "${groupName}" deleted successfully.`);
+    deleteGroup(groupName);
 }
 
 function removeGroupFromSelection(groupName) {
@@ -404,6 +399,16 @@ function removeGroupFromSelection(groupName) {
     
     updateSelectedTeachersList();
     updateComparison();
+}
+
+function deleteGroup(groupName) {
+    if (!confirm(`Are you sure you want to permanently delete the group "${groupName}"?`)) {
+        return;
+    }
+    
+    delete savedGroups[groupName];
+    localStorage.setItem('teacherGroups', JSON.stringify(savedGroups));
+    updateGroupManagement();
 }
 
 function updateGroupManagement() {
