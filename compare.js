@@ -214,9 +214,7 @@ function findLesson(teacherId, day, time, weekPattern, everyWeekPattern) {
             const className = classIds?.length > 2 
                 ? 'Multiple Classes'
                 : classIds?.map(id => {
-                    // Use classIdMapping if available, otherwise fall back to mappings.classes
-                    return (typeof classIdMapping !== 'undefined' ? classIdMapping[id] : null) || 
-                           mappings.classes[id]?.name || '';
+                    return classIdMapping[id] || mappings.classes[id]?.name || '';
                 }).join(', ') || '';
 
             return {
@@ -243,8 +241,7 @@ function updateWeekType() {
 }
 
 // At the top of compare.js, add:
-// import { classIdMapping } from './mappings.js';
-// Note: classIdMapping will be loaded from mappings.js if available
+import { classIdMapping } from './mappings.js';
 
 // Add search functionality
 function setupSearchFunctionality() {
@@ -374,35 +371,19 @@ function deleteSelectedGroup() {
         return;
     }
     
-    deleteGroup(groupName);
-}
-
-function removeGroupFromSelection(groupName) {
-    const group = savedGroups[groupName];
-    if (!group) return;
+    if (!confirm(`Are you sure you want to delete the group "${groupName}"?`)) {
+        return;
+    }
     
-    // Remove all teachers from this group from current selection
-    group.teachers.forEach(teacherId => {
-        selectedTeachers.delete(teacherId);
-    });
+    delete savedGroups[groupName];
+    localStorage.setItem('teacherGroups', JSON.stringify(savedGroups));
     
-    // Update localStorage and UI
-    localStorage.setItem('selectedTeachers', JSON.stringify([...selectedTeachers]));
-    
-    // Update checkboxes
-    const checkboxes = document.querySelectorAll('#teacherCheckboxes input[type="checkbox"]');
-    checkboxes.forEach(checkbox => {
-        if (group.teachers.includes(checkbox.value)) {
-            checkbox.checked = false;
-        }
-    });
-    
-    updateSelectedTeachersList();
-    updateComparison();
+    updateGroupManagement();
+    alert(`Group "${groupName}" deleted successfully.`);
 }
 
 function deleteGroup(groupName) {
-    if (!confirm(`Are you sure you want to permanently delete the group "${groupName}"?`)) {
+    if (!confirm(`Are you sure you want to delete the group "${groupName}"?`)) {
         return;
     }
     
@@ -447,8 +428,8 @@ function updateSavedGroupsList() {
         const tag = document.createElement('div');
         tag.className = 'group-tag';
         tag.innerHTML = `
-            <span onclick="loadGroup('${groupName}')" title="Click to load this group">${groupName} (${group.teachers.length})</span>
-            <span class="delete-group" onclick="deleteGroup('${groupName}')" title="Delete this saved group permanently">×</span>
+            <span onclick="loadGroup('${groupName}')">${groupName} (${group.teachers.length})</span>
+            <span class="delete-group" onclick="deleteGroup('${groupName}')" title="Delete group">&times;</span>
         `;
         container.appendChild(tag);
     });
@@ -707,7 +688,7 @@ function updateSelectedTeachersList() {
         tag.className = 'teacher-tag';
         tag.innerHTML = `
             ${teacher.name} [${teacher.short}]
-            <span class="remove-teacher" onclick="removeTeacher('${teacherId}')" title="Remove teacher from selection">&times;</span>
+            <span class="remove-teacher" onclick="removeTeacher('${teacherId}')">&times;</span>
         `;
         container.appendChild(tag);
     });
