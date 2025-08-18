@@ -394,7 +394,6 @@ function deleteGroup(groupName) {
 
 function updateGroupManagement() {
     updateGroupSelect();
-    updateSavedGroupsList();
     updateGroupButtons();
 }
 
@@ -412,29 +411,6 @@ function updateGroupSelect() {
         });
 }
 
-function updateSavedGroupsList() {
-    const container = document.getElementById('savedGroups');
-    container.innerHTML = '';
-    
-    const groupNames = Object.keys(savedGroups).sort();
-    
-    if (groupNames.length === 0) {
-        container.innerHTML = '<span style="color: #666; font-style: italic;">No saved groups yet</span>';
-        return;
-    }
-    
-    groupNames.forEach(groupName => {
-        const group = savedGroups[groupName];
-        const tag = document.createElement('div');
-        tag.className = 'group-tag';
-        tag.innerHTML = `
-            <span onclick="loadGroup('${groupName}')">${groupName} (${group.teachers.length})</span>
-            <span class="delete-group" onclick="deleteGroup('${groupName}')" title="Delete group">&times;</span>
-        `;
-        container.appendChild(tag);
-    });
-}
-
 function updateGroupButtons() {
     const groupSelect = document.getElementById('groupSelect');
     const loadBtn = document.getElementById('loadGroupBtn');
@@ -447,7 +423,6 @@ function updateGroupButtons() {
 
 // Make functions globally accessible
 window.loadGroup = loadGroup;
-window.deleteGroup = deleteGroup;
 
 function filterTeachers() {
     const searchTerm = document.getElementById('teacherSearch').value.toLowerCase();
