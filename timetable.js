@@ -1,6 +1,10 @@
 let xmlData = null;
 let mappings = null;
 
+// Week visibility configuration - set these to true/false to show/hide weeks
+let showOddWeeks = true;   // Set to false to hide odd week timetables
+let showEvenWeeks = false;  // Set to false to hide even week timetables
+
 function loadXMLData(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -222,9 +226,11 @@ function updatePreview(teacherId) {
         previewSection.appendChild(tablesContainer);
     }
     
-    // Update only the tables container with odd/even week tables
-    tablesContainer.innerHTML = `
-        <div class="timetable-container">
+    // Update only the tables container with odd/even week tables based on configuration
+    let tablesHTML = '<div class="timetable-container">';
+    
+    if (showOddWeeks) {
+        tablesHTML += `
             <div class="week-table">
                 <h3 class="week-header">Odd Week</h3>
                 <table id="oddWeekTable" class="preview-table">
@@ -239,7 +245,11 @@ function updatePreview(teacherId) {
                     </thead>
                     <tbody></tbody>
                 </table>
-            </div>
+            </div>`;
+    }
+    
+    if (showEvenWeeks) {
+        tablesHTML += `
             <div class="week-table">
                 <h3 class="week-header">Even Week</h3>
                 <table id="evenWeekTable" class="preview-table">
@@ -254,12 +264,14 @@ function updatePreview(teacherId) {
                     </thead>
                     <tbody></tbody>
                 </table>
-            </div>
-        </div>
-    `;
+            </div>`;
+    }
+    
+    tablesHTML += '</div>';
+    tablesContainer.innerHTML = tablesHTML;
 
-    const oddWeekTable = document.getElementById('oddWeekTable').getElementsByTagName('tbody')[0];
-    const evenWeekTable = document.getElementById('evenWeekTable').getElementsByTagName('tbody')[0];
+    const oddWeekTable = showOddWeeks ? document.getElementById('oddWeekTable').getElementsByTagName('tbody')[0] : null;
+    const evenWeekTable = showEvenWeeks ? document.getElementById('evenWeekTable').getElementsByTagName('tbody')[0] : null;
     const lessons = xmlData.querySelectorAll(`lesson[teacherids*="${teacherId}"]`);
     const lessonMap = new Map();
     
@@ -372,13 +384,17 @@ function updatePreview(teacherId) {
         entry.weekType === 'Even Week' || entry.weekType === 'Every Week'
     );
 
-    oddWeekTable.innerHTML = oddWeekLessons.length ? 
-        oddWeekLessons.map(createRow).join('') : 
-        '<tr><td colspan="5">No lessons found for this week</td></tr>';
+    if (oddWeekTable) {
+        oddWeekTable.innerHTML = oddWeekLessons.length ? 
+            oddWeekLessons.map(createRow).join('') : 
+            '<tr><td colspan="5">No lessons found for this week</td></tr>';
+    }
 
-    evenWeekTable.innerHTML = evenWeekLessons.length ? 
-        evenWeekLessons.map(createRow).join('') : 
-        '<tr><td colspan="5">No lessons found for this week</td></tr>';
+    if (evenWeekTable) {
+        evenWeekTable.innerHTML = evenWeekLessons.length ? 
+            evenWeekLessons.map(createRow).join('') : 
+            '<tr><td colspan="5">No lessons found for this week</td></tr>';
+    }
 }
 
 function createTeacherCalendar(teacherId, startDate, endDate, startWeekType) {
@@ -445,8 +461,17 @@ function createTeacherCalendar(teacherId, startDate, endDate, startWeekType) {
             });
         });
 
-        // Create events for each day group
+        // Create events for each day group, respecting week visibility settings
         dayGroups.forEach((group) => {
+            // Skip this event if the week type is hidden
+            const weekType = group.weeks === '11' ? 'every' : 
+                           group.weeks === '10' ? 'odd' : 
+                           group.weeks === '01' ? 'even' : 'every';
+            
+            if ((weekType === 'odd' && !showOddWeeks) || 
+                (weekType === 'even' && !showEvenWeeks)) {
+                return; // Skip this event
+            }
             // Get rooms from the card
             const roomIds = (group.card.getAttribute('classroomids') || '').split(',').filter(Boolean);
             const rooms = roomIds.map(id => mappings.rooms[id]?.name || 'Unknown');
