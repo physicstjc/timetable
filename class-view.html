@@ -93,9 +93,11 @@
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             overflow: hidden;
+            overflow-x: auto;
         }
         .timetable {
             width: 100%;
+            min-width: 600px;
             border-collapse: collapse;
             table-layout: fixed;
         }
@@ -118,11 +120,11 @@
             background: #f8f9fa;
             font-weight: 600;
             color: #495057;
-            width: 100px;
+            width: 50px;
         }
         .timetable th:not(.time-cell),
         .timetable td:not(.time-cell) {
-            width: calc((100% - 100px) / 5);
+            width: calc((100% - 50px) / 5);
         }
         .lesson-cell {
             background: #e3f2fd;
