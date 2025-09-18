@@ -241,7 +241,7 @@ function updateWeekType() {
 }
 
 // At the top of compare.js, add:
-// Removed import statement to avoid syntax error in browser
+import { classIdMapping } from './mappings.js';
 
 // Add search functionality
 function setupSearchFunctionality() {
@@ -564,9 +564,61 @@ window.removeTeacher = function(teacherId) {
     updateComparison();
 };
 
-// These functions are no longer needed - using checkbox interface instead
-// Removed populateTeacherSelects() and updateTeacherSelect() functions
+function populateTeacherSelects() {
+    const departmentSet = new Set();
+    
+    // Extract unique department codes from teacher short names
+    Object.values(mappings.teachers).forEach(teacher => {
+        const match = teacher.short.match(/\[(.*?)[\]}]/);  // Handle both ] and } as closing brackets
+        if (match && departments[match[1]]) {
+            departmentSet.add(match[1]);
+        }
+    });
 
+    const departments1 = document.getElementById('departments1');
+    const departments2 = document.getElementById('departments2');
+    departments1.innerHTML = '<option value="">All Departments</option>';
+    departments2.innerHTML = '<option value="">All Departments</option>';
+    
+    // Sort departments by their full names and create options
+    Array.from(departmentSet)
+        .sort((a, b) => departments[a].localeCompare(departments[b]))
+        .forEach(dept => {
+            const option1 = document.createElement('option');
+            const option2 = document.createElement('option');
+            option1.value = option2.value = dept;
+            option1.textContent = option2.textContent = departments[dept];
+            departments1.appendChild(option1);
+            departments2.appendChild(option2.cloneNode(true));
+        });
+
+    updateTeacherSelect(1);
+    updateTeacherSelect(2);
+}
+
+function updateTeacherSelect(selectNum) {
+    const departmentSelect = document.getElementById(`departments${selectNum}`);
+    const teacherSelect = document.getElementById(`teachers${selectNum}`);
+    const selectedDepartment = departmentSelect.value;
+
+    teacherSelect.innerHTML = '<option value="">Select a teacher...</option>';
+    
+    Object.entries(mappings.teachers)
+        .filter(([, teacher]) => {
+            if (!selectedDepartment) return true;
+            const match = teacher.short.match(/\[(.*?)[\]}]/);  // Handle both ] and } as closing brackets
+            return match && match[1] === selectedDepartment;
+        })
+        .sort(([, a], [, b]) => a.name.localeCompare(b.name))
+        .forEach(([id, teacher]) => {
+            const option = document.createElement('option');
+            option.value = id;
+            option.textContent = teacher.name;
+            teacherSelect.appendChild(option);
+        });
+}
+
+// Update the addTeacher function
 function addTeacher() {
     const select = document.getElementById('teacherSelect');
     const teacherId = select.value;
@@ -617,4 +669,8 @@ function updateSelectedTeachersList() {
     });
 }
 
-// Event listeners are already set up in the main DOMContentLoaded handler above
+// Add event listeners for department selection
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('departments1').addEventListener('change', () => updateTeacherSelect(1));
+    document.getElementById('departments2').addEventListener('change', () => updateTeacherSelect(2));
+});
