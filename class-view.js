@@ -7,7 +7,7 @@ let mappings = {
     periods: {},
     daysdef: {}
 };
-let currentWeekType = 'odd';
+let currentWeekType = 'even';
 let selectedClassId = null;
 
 // Load default timetable data
