@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Class Timetable Viewer</title>
+    <title>Class Timetable View</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -237,9 +238,24 @@
             </table>
         </div>
         
-        <div class="back-link">
-            <a href="index.html">← Back to iCal Generator</a>
+        <footer class="admin-controls">
+        <div class="footer-content">
+            <p class="verification-note">Please verify against the official timetable. For any discrepancies, contact <a href="mailto:tan_seng_kwang@moe.edu.sg">the site owner</a>.</p>
+            <div class="admin-buttons">
+                <button onclick="window.location.href='index.html'" class="admin-button">
+                    Back to iCal Generator
+                </button>
+                <button onclick="window.location.href='compare.html'" class="admin-button">
+                    Timetable Comparison
+                </button>
+            </div>
+            <p class="other-apps-link" style="margin-top: 15px;">
+                <a href="https://physicstjc.github.io/apps/" style="color: #007AFF; text-decoration: none;">
+                    View Other Productivity Apps →
+                </a>
+            </p>
         </div>
+    </footer>
     </div>
     
     <script src="departments.js"></script>

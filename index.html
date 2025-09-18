@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Timetable Calendar Generator</title>
+    <title>Teacher Timetable iCal Generator</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/ical.js"></script>
@@ -117,9 +117,6 @@
                 <button onclick="window.location.href='class-view.html'" class="admin-button">
                     Class Timetable View
                 </button>
-                <button onclick="toggleAdminSection()" class="admin-button">
-                    Admin Data Input
-                </button>
             </div>
             <p class="other-apps-link" style="margin-top: 15px;">
                 <a href="https://physicstjc.github.io/apps/" style="color: #007AFF; text-decoration: none;">
@@ -190,39 +187,3 @@
     <script src="timetable.js" defer></script>
 </body>
 </html>
-
-<script>
-    function toggleAdminSection() {
-        const adminSection = document.querySelector('.input-section.card.admin-section');
-        adminSection.style.display = adminSection.style.display === 'none' ? 'block' : 'none';
-    }
-</script>
-
-<style>
-    .admin-controls {
-        display: flex;
-        gap: 10px;
-        justify-content: center;
-        padding: 20px 0;
-        border-top: 1px solid #eee;
-        margin-top: auto;
-        background: #f9f9f9;
-        width: 100%;
-    }
-    
-    .admin-button {
-        background: #f5f5f5;
-        color: #666;
-        padding: 8px 16px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 14px;
-        transition: all 0.2s;
-    }
-    
-    .admin-button:hover {
-        background: #e9e9e9;
-        color: #333;
-    }
-</style>
