@@ -16,11 +16,21 @@
     box-sizing: border-box;
 }
 
+/* Update the body styles to ensure no margin/padding at top */
 body {
     font-family: 'Inter', sans-serif;
-    background-color: var(--background);
-    color: var(--text-primary);
-    line-height: 1.5;
+    margin: 0;
+    padding: 0;
+    background-color: #f5f7fa;
+    color: #333;
+}
+
+/* Ensure container has consistent spacing */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    padding-top: 0; /* Remove top padding to eliminate gap above header */
 }
 
 /* Update existing container styles */
@@ -452,16 +462,83 @@ h2 {
     background-color: #cc0000;
 }
 
-/* Footer Styles */
-.admin-controls {
-    display: flex;
-    justify-content: center;
-    padding: 20px 0;
-    border-top: 1px solid #eee;
-    margin-top: auto;
-    background: #f9f9f9;
-    width: 100%;
+/* Header Navigation Styles */
+.site-header {
+    background: linear-gradient(135deg, #007AFF, #0056CC);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
 }
+
+.header-nav {
+    padding: 0;
+}
+
+.nav-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.site-title {
+    color: white;
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.nav-buttons {
+    display: flex;
+    gap: 15px;
+}
+
+.nav-button {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 10px 20px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.nav-button:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.nav-button:active {
+    transform: translateY(0);
+}
+
+/* Active page styling */
+.nav-button.active {
+    background: white;
+    color: #007AFF;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .nav-container {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+    
+    .nav-buttons {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+}
+
 
 .footer-content {
     text-align: center;

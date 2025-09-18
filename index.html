@@ -9,6 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/ical.js"></script>
 </head>
 <body>
+    <div id="header-placeholder"></div>
     <div class="container">
         <!-- Remove footer from header -->
         <header>
@@ -107,24 +108,7 @@
         </main>
     </div>
     <!-- Move footer to the bottom, before closing body tag -->
-    <footer class="admin-controls">
-        <div class="footer-content">
-            <p class="verification-note">Please verify against the official timetable. For any discrepancies, contact <a href="mailto:tan_seng_kwang@moe.edu.sg">the site owner</a>.</p>
-            <div class="admin-buttons">
-                <button onclick="window.location.href='compare.html'" class="admin-button">
-                    Timetable Comparison
-                </button>
-                <button onclick="window.location.href='class-view.html'" class="admin-button">
-                    Class Timetable View
-                </button>
-            </div>
-            <p class="other-apps-link" style="margin-top: 15px;">
-                <a href="https://physicstjc.github.io/apps/" style="color: #007AFF; text-decoration: none;">
-                    View Other Productivity Apps →
-                </a>
-            </p>
-        </div>
-    </footer>
+    
     <style>
         .admin-controls {
             display: flex;
@@ -185,5 +169,23 @@
     </style>
     <script src="ical.min.js"></script>
     <script src="timetable.js" defer></script>
+    <script>
+// Load shared header
+fetch('header.html')
+    .then(response => response.text())
+    .then(data => {
+        document.getElementById('header-placeholder').innerHTML = data;
+        
+        // Highlight current page
+        const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+        const navButtons = document.querySelectorAll('.nav-button');
+        navButtons.forEach(button => {
+            if (button.getAttribute('href') === currentPage) {
+                button.classList.add('active');
+            }
+        });
+    })
+    .catch(error => console.error('Error loading header:', error));
+</script>
 </body>
 </html>

@@ -3,19 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Class Timetable View</title>
+    <title>Class Timetable Viewer</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
     <style>
+        /* Remove or update the body styles */
         body {
             font-family: 'Inter', sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 0; /* Changed from padding: 20px */
             background-color: #f5f7fa;
         }
         .container {
             max-width: 1400px;
             margin: 0 auto;
+            padding: 20px;
+            padding-top: 0; /* Add this to remove top padding */
         }
         .page-header {
             text-align: center;
@@ -188,8 +190,10 @@
             color: #666;
         }
     </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <div id="header-placeholder"></div>
     <div class="container">
         <div class="page-header">
             <h1>Class Timetable Viewer</h1>
@@ -238,27 +242,28 @@
             </table>
         </div>
         
-        <footer class="admin-controls">
-        <div class="footer-content">
-            <p class="verification-note">Please verify against the official timetable. For any discrepancies, contact <a href="mailto:tan_seng_kwang@moe.edu.sg">the site owner</a>.</p>
-            <div class="admin-buttons">
-                <button onclick="window.location.href='index.html'" class="admin-button">
-                    Back to iCal Generator
-                </button>
-                <button onclick="window.location.href='compare.html'" class="admin-button">
-                    Timetable Comparison
-                </button>
-            </div>
-            <p class="other-apps-link" style="margin-top: 15px;">
-                <a href="https://physicstjc.github.io/apps/" style="color: #007AFF; text-decoration: none;">
-                    View Other Productivity Apps →
-                </a>
-            </p>
-        </div>
-    </footer>
+       
     </div>
     
     <script src="departments.js"></script>
     <script src="class-view.js"></script>
+    <script>
+// Load shared header
+fetch('header.html')
+    .then(response => response.text())
+    .then(data => {
+        document.getElementById('header-placeholder').innerHTML = data;
+        
+        // Highlight current page
+        const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+        const navButtons = document.querySelectorAll('.nav-button');
+        navButtons.forEach(button => {
+            if (button.getAttribute('href') === currentPage) {
+                button.classList.add('active');
+            }
+        });
+    })
+    .catch(error => console.error('Error loading header:', error));
+</script>
 </body>
 </html>
