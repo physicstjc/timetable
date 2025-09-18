@@ -10,11 +10,12 @@ let mappings = {
 };
 // Add after the selectedTeachers declaration at the top
 let selectedTeachers = new Set(JSON.parse(localStorage.getItem('selectedTeachers') || '[]'));
+let savedGroups = JSON.parse(localStorage.getItem('teacherGroups') || '{}');
 
 // Modify the loadDefaultTimetable function to update the UI after loading
 async function loadDefaultTimetable() {
     try {
-        const response = await fetch('asctt2012.xml');
+        const response = await fetch('timetables/asctt2012.xml');
         const text = await response.text();
         const parser = new DOMParser();
         xmlData = parser.parseFromString(text, 'text/xml');
@@ -46,6 +47,7 @@ async function loadDefaultTimetable() {
         populateDepartmentSelect();
         updateTeacherCheckboxes(); // Add this line to show all teachers immediately
         updateSelectedTeachersList();
+        updateGroupManagement(); // Add this line
         updateComparison();
     } catch (error) {
         console.error('Error loading timetable:', error);
@@ -239,7 +241,234 @@ function updateWeekType() {
 }
 
 // At the top of compare.js, add:
-import { classIdMapping } from './mappings.js';
+// Removed import statement to avoid syntax error in browser
+
+// Add search functionality
+function setupSearchFunctionality() {
+    const searchInput = document.getElementById('teacherSearch');
+    const clearButton = document.getElementById('clearSearch');
+    
+    searchInput.addEventListener('input', filterTeachers);
+    clearButton.addEventListener('click', clearSearch);
+    
+    // Show/hide clear button based on input content
+    searchInput.addEventListener('input', function() {
+        clearButton.style.display = this.value ? 'block' : 'none';
+    });
+}
+
+// Group management functions
+function setupGroupManagement() {
+    const saveBtn = document.getElementById('saveGroupBtn');
+    const loadBtn = document.getElementById('loadGroupBtn');
+    const deleteBtn = document.getElementById('deleteGroupBtn');
+    const groupNameInput = document.getElementById('groupNameInput');
+    const groupSelect = document.getElementById('groupSelect');
+    
+    saveBtn.addEventListener('click', saveCurrentGroup);
+    loadBtn.addEventListener('click', loadSelectedGroup);
+    deleteBtn.addEventListener('click', deleteSelectedGroup);
+    
+    // Allow saving with Enter key
+    groupNameInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            saveCurrentGroup();
+        }
+    });
+    
+    // Update buttons state when selection changes
+    groupSelect.addEventListener('change', updateGroupButtons);
+    
+    updateGroupManagement();
+}
+
+function saveCurrentGroup() {
+    const groupNameInput = document.getElementById('groupNameInput');
+    const groupName = groupNameInput.value.trim();
+    
+    if (!groupName) {
+        alert('Please enter a group name.');
+        return;
+    }
+    
+    if (selectedTeachers.size === 0) {
+        alert('Please select at least one teacher to save as a group.');
+        return;
+    }
+    
+    // Check if group name already exists
+    if (savedGroups[groupName]) {
+        if (!confirm(`A group named "${groupName}" already exists. Do you want to overwrite it?`)) {
+            return;
+        }
+    }
+    
+    // Save the group
+    savedGroups[groupName] = {
+        teachers: [...selectedTeachers],
+        created: new Date().toISOString(),
+        teacherNames: [...selectedTeachers].map(id => mappings.teachers[id]?.name || 'Unknown')
+    };
+    
+    localStorage.setItem('teacherGroups', JSON.stringify(savedGroups));
+    
+    // Clear input and update UI
+    groupNameInput.value = '';
+    updateGroupManagement();
+    
+    // Show success message
+    alert(`Group "${groupName}" saved successfully!`);
+}
+
+function loadSelectedGroup() {
+    const groupSelect = document.getElementById('groupSelect');
+    const groupName = groupSelect.value;
+    
+    if (!groupName || !savedGroups[groupName]) {
+        alert('Please select a group to load.');
+        return;
+    }
+    
+    loadGroup(groupName);
+}
+
+function loadGroup(groupName) {
+    const group = savedGroups[groupName];
+    if (!group) return;
+    
+    // Clear current selection
+    selectedTeachers.clear();
+    
+    // Add teachers from the group (filter out any that no longer exist)
+    group.teachers.forEach(teacherId => {
+        if (mappings.teachers[teacherId]) {
+            selectedTeachers.add(teacherId);
+        }
+    });
+    
+    // Update localStorage and UI
+    localStorage.setItem('selectedTeachers', JSON.stringify([...selectedTeachers]));
+    
+    // Update checkboxes
+    const checkboxes = document.querySelectorAll('#teacherCheckboxes input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectedTeachers.has(checkbox.value);
+    });
+    
+    updateSelectedTeachersList();
+    updateComparison();
+    
+    // Show which group was loaded
+    alert(`Loaded group "${groupName}" with ${selectedTeachers.size} teachers.`);
+}
+
+function deleteSelectedGroup() {
+    const groupSelect = document.getElementById('groupSelect');
+    const groupName = groupSelect.value;
+    
+    if (!groupName || !savedGroups[groupName]) {
+        alert('Please select a group to delete.');
+        return;
+    }
+    
+    if (!confirm(`Are you sure you want to delete the group "${groupName}"?`)) {
+        return;
+    }
+    
+    delete savedGroups[groupName];
+    localStorage.setItem('teacherGroups', JSON.stringify(savedGroups));
+    
+    updateGroupManagement();
+    alert(`Group "${groupName}" deleted successfully.`);
+}
+
+function deleteGroup(groupName) {
+    if (!confirm(`Are you sure you want to delete the group "${groupName}"?`)) {
+        return;
+    }
+    
+    delete savedGroups[groupName];
+    localStorage.setItem('teacherGroups', JSON.stringify(savedGroups));
+    updateGroupManagement();
+}
+
+function updateGroupManagement() {
+    updateGroupSelect();
+    updateGroupButtons();
+}
+
+function updateGroupSelect() {
+    const groupSelect = document.getElementById('groupSelect');
+    groupSelect.innerHTML = '<option value="">Load a saved group...</option>';
+    
+    Object.keys(savedGroups)
+        .sort()
+        .forEach(groupName => {
+            const option = document.createElement('option');
+            option.value = groupName;
+            option.textContent = `${groupName} (${savedGroups[groupName].teachers.length} teachers)`;
+            groupSelect.appendChild(option);
+        });
+}
+
+function updateGroupButtons() {
+    const groupSelect = document.getElementById('groupSelect');
+    const loadBtn = document.getElementById('loadGroupBtn');
+    const deleteBtn = document.getElementById('deleteGroupBtn');
+    
+    const hasSelection = groupSelect.value !== '';
+    loadBtn.disabled = !hasSelection;
+    deleteBtn.disabled = !hasSelection;
+}
+
+// Make functions globally accessible
+window.loadGroup = loadGroup;
+
+function filterTeachers() {
+    const searchTerm = document.getElementById('teacherSearch').value.toLowerCase();
+    const department = document.getElementById('departmentSelect').value;
+    const container = document.getElementById('teacherCheckboxes');
+    const checkboxItems = container.querySelectorAll('.teacher-checkbox-item');
+    
+    let hasVisibleResults = false;
+    
+    checkboxItems.forEach(item => {
+        const label = item.querySelector('label');
+        const teacherName = label.textContent.toLowerCase();
+        
+        const matchesSearch = !searchTerm || teacherName.includes(searchTerm);
+        
+        if (matchesSearch) {
+            item.classList.remove('hidden');
+            hasVisibleResults = true;
+        } else {
+            item.classList.add('hidden');
+        }
+    });
+    
+    // Show/hide "no results" message
+    let noResultsMsg = container.querySelector('.no-results');
+    if (!hasVisibleResults && (searchTerm || department)) {
+        if (!noResultsMsg) {
+            noResultsMsg = document.createElement('div');
+            noResultsMsg.className = 'no-results';
+            noResultsMsg.textContent = 'No teachers found matching your search.';
+            container.appendChild(noResultsMsg);
+        }
+        noResultsMsg.style.display = 'block';
+    } else if (noResultsMsg) {
+        noResultsMsg.style.display = 'none';
+    }
+}
+
+function clearSearch() {
+    const searchInput = document.getElementById('teacherSearch');
+    const clearButton = document.getElementById('clearSearch');
+    
+    searchInput.value = '';
+    clearButton.style.display = 'none';
+    filterTeachers(); // Re-filter to show all teachers
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     loadDefaultTimetable();
@@ -252,7 +481,16 @@ document.addEventListener('DOMContentLoaded', () => {
     daySelect.addEventListener('change', updateComparison);
     document.getElementById('weekType').addEventListener('change', updateComparison);
     
-    document.getElementById('departmentSelect').addEventListener('change', updateTeacherCheckboxes);
+    document.getElementById('departmentSelect').addEventListener('change', () => {
+        updateTeacherCheckboxes();
+        filterTeachers(); // Apply search filter after department change
+    });
+    
+    // Setup search functionality
+    setupSearchFunctionality();
+    
+    // Setup group management
+    setupGroupManagement();
 });
 
 // Modify the updateTeacherCheckboxes function
@@ -300,6 +538,9 @@ function updateTeacherCheckboxes() {
             div.appendChild(label);
             container.appendChild(div);
         });
+    
+    // Apply search filter after updating checkboxes
+    filterTeachers();
 }
 
 // Remove the applyTeacherFilter function since it's no longer needed
@@ -323,61 +564,9 @@ window.removeTeacher = function(teacherId) {
     updateComparison();
 };
 
-function populateTeacherSelects() {
-    const departmentSet = new Set();
-    
-    // Extract unique department codes from teacher short names
-    Object.values(mappings.teachers).forEach(teacher => {
-        const match = teacher.short.match(/\[(.*?)[\]}]/);  // Handle both ] and } as closing brackets
-        if (match && departments[match[1]]) {
-            departmentSet.add(match[1]);
-        }
-    });
+// These functions are no longer needed - using checkbox interface instead
+// Removed populateTeacherSelects() and updateTeacherSelect() functions
 
-    const departments1 = document.getElementById('departments1');
-    const departments2 = document.getElementById('departments2');
-    departments1.innerHTML = '<option value="">All Departments</option>';
-    departments2.innerHTML = '<option value="">All Departments</option>';
-    
-    // Sort departments by their full names and create options
-    Array.from(departmentSet)
-        .sort((a, b) => departments[a].localeCompare(departments[b]))
-        .forEach(dept => {
-            const option1 = document.createElement('option');
-            const option2 = document.createElement('option');
-            option1.value = option2.value = dept;
-            option1.textContent = option2.textContent = departments[dept];
-            departments1.appendChild(option1);
-            departments2.appendChild(option2.cloneNode(true));
-        });
-
-    updateTeacherSelect(1);
-    updateTeacherSelect(2);
-}
-
-function updateTeacherSelect(selectNum) {
-    const departmentSelect = document.getElementById(`departments${selectNum}`);
-    const teacherSelect = document.getElementById(`teachers${selectNum}`);
-    const selectedDepartment = departmentSelect.value;
-
-    teacherSelect.innerHTML = '<option value="">Select a teacher...</option>';
-    
-    Object.entries(mappings.teachers)
-        .filter(([, teacher]) => {
-            if (!selectedDepartment) return true;
-            const match = teacher.short.match(/\[(.*?)[\]}]/);  // Handle both ] and } as closing brackets
-            return match && match[1] === selectedDepartment;
-        })
-        .sort(([, a], [, b]) => a.name.localeCompare(b.name))
-        .forEach(([id, teacher]) => {
-            const option = document.createElement('option');
-            option.value = id;
-            option.textContent = teacher.name;
-            teacherSelect.appendChild(option);
-        });
-}
-
-// Update the addTeacher function
 function addTeacher() {
     const select = document.getElementById('teacherSelect');
     const teacherId = select.value;
@@ -428,8 +617,4 @@ function updateSelectedTeachersList() {
     });
 }
 
-// Add event listeners for department selection
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('departments1').addEventListener('change', () => updateTeacherSelect(1));
-    document.getElementById('departments2').addEventListener('change', () => updateTeacherSelect(2));
-});
+// Event listeners are already set up in the main DOMContentLoaded handler above
