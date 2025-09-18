@@ -65,4 +65,5 @@ const classIdMapping = {
     'F45C518DD261769C': '18_25'
 };
 
-// Removed export statement to avoid syntax error in browser
+// Export for ES6 modules
+export { classIdMapping };
