@@ -27,46 +27,6 @@
             display: flex;
             gap: 10px;
             margin-bottom: 15px;
-            align-items: flex-start;
-        }
-        .search-container {
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-        .search-input {
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            width: 250px;
-        }
-        .search-input:focus {
-            outline: none;
-            border-color: #007AFF;
-            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);
-        }
-        .search-clear {
-            position: absolute;
-            right: 8px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: #999;
-            cursor: pointer;
-            font-size: 16px;
-            padding: 0;
-            width: 20px;
-            height: 20px;
-            display: none;
-        }
-        .search-clear:hover {
-            color: #666;
-        }
-        .search-input:not(:placeholder-shown) + .search-clear {
-            display: block;
         }
         select, input {
             padding: 8px;
@@ -175,9 +135,6 @@
         .teacher-checkbox-item input[type="checkbox"] {
             margin: 0;
         }
-        .teacher-checkbox-item.hidden {
-            display: none;
-        }
         .lesson-content {
             padding: 5px;
             text-align: left;
@@ -254,134 +211,24 @@
             font-size: 1.1em;
             margin-bottom: 2rem;
         }
-        .no-results {
-            padding: 10px;
-            text-align: center;
-            color: #666;
-            font-style: italic;
-        }
-        .group-management {
-            margin: 15px 0;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 6px;
-            border: 1px solid #e9ecef;
-        }
-        .group-controls {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
-            margin-bottom: 10px;
-        }
-        .group-input {
-            padding: 6px 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            min-width: 200px;
-        }
-        .group-select {
-            padding: 6px 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            min-width: 200px;
-        }
-        .btn-small {
-            padding: 6px 12px;
-            font-size: 14px;
-            background: #28a745;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .btn-small:hover {
-            background: #218838;
-        }
-        .btn-small.secondary {
-            background: #6c757d;
-        }
-        .btn-small.secondary:hover {
-            background: #5a6268;
-        }
-        .btn-small.danger {
-            background: #dc3545;
-        }
-        .btn-small.danger:hover {
-            background: #c82333;
-        }
-        .saved-groups {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 10px;
-        }
-        .group-tag {
-            background: #e3f2fd;
-            color: #1565c0;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        .group-tag:hover {
-            background: #bbdefb;
-        }
-        .group-tag .delete-group {
-            color: #d32f2f;
-            cursor: pointer;
-            margin-left: 4px;
-        }
-        .group-tag .delete-group:hover {
-            color: #b71c1c;
-        }
-        .group-section-title {
-            font-weight: 500;
-            margin-bottom: 8px;
-            color: #495057;
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="page-header">
             <h1>Timetable Comparison</h1>
-            <div class="tagline">Compare schedules between teachers to find common free periods.</div>
+            <div class="tagline">Compare schedules between teachers to find common free periods</div>
         </div>
-    
         
         <div class="controls">
             <div class="teacher-select">
                 <select id="departmentSelect">
                     <option value="">Select a department...</option>
                 </select>
-                <div class="search-container">
-                    <input type="text" id="teacherSearch" class="search-input" placeholder="Search teachers by name...">
-                    <button type="button" class="search-clear" id="clearSearch">&times;</button>
-                </div>
                 <div id="teacherCheckboxes" class="teacher-checkboxes"></div>
                 <!-- Remove the Apply Filter button -->
             </div>
             <div class="selected-teachers" id="selectedTeachers"></div>
-            
-            <div class="group-management">
-                <div class="group-section-title">Teacher Groups</div>
-                <div class="group-controls">
-                    <input type="text" id="groupNameInput" class="group-input" placeholder="Enter group name...">
-                    <button type="button" id="saveGroupBtn" class="btn-small">Save Current Selection</button>
-                    <select id="groupSelect" class="group-select">
-                        <option value="">Load a saved group...</option>
-                    </select>
-                    <button type="button" id="loadGroupBtn" class="btn-small secondary">Load Group</button>
-                    <button type="button" id="deleteGroupBtn" class="btn-small danger">Delete Group</button>
-                </div>
-            </div>
             
             <div class="date-controls">
                 <label>
