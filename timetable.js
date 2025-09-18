@@ -2,7 +2,7 @@ let xmlData = null;
 let mappings = null;
 
 // Week visibility configuration - set these to true/false to show/hide weeks
-let showOddWeeks = true;   // Set to false to hide odd week timetables
+let showOddWeeks = false;   // Set to false to hide odd week timetables
 let showEvenWeeks = true;  // Set to false to hide even week timetables
 
 function loadXMLData(file) {
