@@ -15,43 +15,32 @@ let savedGroups = JSON.parse(localStorage.getItem('teacherGroups') || '{}');
 // Modify the loadDefaultTimetable function to update the UI after loading
 async function loadDefaultTimetable() {
     try {
-        const response = await fetch('timetables/asctt2012.xml');
-        const text = await response.text();
-        const parser = new DOMParser();
-        xmlData = parser.parseFromString(text, 'text/xml');
-        
-        // Parse mappings
-        ['teachers', 'subjects', 'classrooms', 'classes', 'periods', 'daysdef'].forEach(type => {
-            const elements = xmlData.querySelectorAll(type === 'classrooms' ? 'classroom' : type.slice(0, -1));
-            elements.forEach(element => {
-                const id = type === 'periods' ? element.getAttribute('period') : element.getAttribute('id');
-                if (type === 'classes') {
-                    console.log('Loading class:', id, element.getAttribute('name'));
+        // Try known timetable files inside timetables/ directly (no directory listing)
+        const fallbackFiles = ['term4week4.xml', 'term4week5.xml', 'term4week6-7.xml'];
+        for (const name of fallbackFiles) {
+            try {
+                const res = await fetch(`timetables/${name}`);
+                if (!res.ok) {
+                    continue;
                 }
-                mappings[type === 'classrooms' ? 'rooms' : type][id] = {
-                    id: id,  // Add the ID to the mapping
-                    name: element.getAttribute('name'),
-                    short: element.getAttribute('short'),
-                    ...(type === 'periods' && { 
-                        start: element.getAttribute('starttime')
-                    })
-                };
-            });
-        });
+                const xmlText = await res.text();
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+                if (xmlDoc.querySelector('parsererror')) {
+                    continue; // try next file
+                }
+                xmlData = xmlDoc;
+                mappings = getMappings(xmlData);
+                return;
+            } catch {
+                // continue to next fallback file
+            }
+        }
 
-        // Debug log to check periods
-        console.log('Sample period:', xmlData.querySelector('period')?.outerHTML);
-        console.log('Loaded periods:', mappings.periods);
-
-        // After loading data, populate the department select
-        populateDepartmentSelect();
-        updateTeacherCheckboxes(); // Add this line to show all teachers immediately
-        updateSelectedTeachersList();
-        updateGroupManagement(); // Add this line
-        updateComparison();
+        throw new Error('No XML timetable files could be loaded from timetables/');
     } catch (error) {
-        console.error('Error loading timetable:', error);
-        alert('Failed to load the timetable file.');
+        console.error('Failed to load default timetable:', error);
+        alert('Failed to load timetable XML from timetables/. Please ensure XML files exist there.');
     }
 }
 
@@ -516,26 +505,23 @@ function clearSearch() {
     filterTeachers(); // Re-filter to show all teachers
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    loadDefaultTimetable();
-    
+document.addEventListener('DOMContentLoaded', async () => {
     // Initialize XML dropdown and hook change event
-    populateXMLDropdown();
     const xmlSelect = document.getElementById('xmlSelect');
     if (xmlSelect) {
-        xmlSelect.addEventListener('change', (e) => {
-            loadSelectedXML(e.target.value);
+        await populateXMLDropdown(); // Call only once
+        xmlSelect.addEventListener('change', async (e) => {
+            await loadSelectedXML(e.target.value);
         });
     } else {
-        // Fallback to default loading if dropdown not present
-        loadDefaultTimetable();
+        // No dropdown: load from timetables/ using known files
+        await loadDefaultTimetable();
     }
 
-    // Set default day to current day
+    // Continue with existing initialization (department/teacher UI, comparison table)
     const daySelect = document.getElementById('daySelect');
     daySelect.value = getCurrentDayIndex();
 
-    // Existing listeners
     daySelect.addEventListener('change', updateComparison);
     document.getElementById('weekType').addEventListener('change', updateComparison);
 
@@ -733,9 +719,16 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('departments2').addEventListener('change', () => updateTeacherSelect(2));
 });
 
+// Guard flags to prevent duplicate dropdown population
+let xmlDropdownLoading = false;
+let xmlDropdownInitialized = false;
+
 function populateXMLDropdown() {
     const select = document.getElementById('xmlSelect');
-    if (!select) return;
+    if (!select) {
+        xmlDropdownLoading = false;
+        return;
+    }
 
     select.innerHTML = '';
     const addOption = (name) => {
@@ -745,7 +738,6 @@ function populateXMLDropdown() {
         select.appendChild(option);
     };
 
-    // Try to list directory; if not available, use fallback list
     fetch('timetables/')
         .then(res => res.text())
         .then(html => {
@@ -756,19 +748,22 @@ function populateXMLDropdown() {
             if (xmlFiles.length) {
                 xmlFiles.forEach(name => addOption(name));
             } else {
-                ['asctt2012.xml', 'term4week4.xml', 'term4week5.xml', 'term4week6-7.xml'].forEach(addOption);
+                ['term4week4.xml', 'term4week5.xml', 'term4week6-7.xml'].forEach(addOption);
             }
-            // Select first and load
             if (select.options.length) {
                 select.selectedIndex = 0;
                 loadSelectedXML(select.value);
             }
         })
         .catch(() => {
-            ['asctt2012.xml', 'term4week4.xml', 'term4week5.xml', 'term4week6-7.xml'].forEach(addOption);
+            ['term4week4.xml', 'term4week5.xml', 'term4week6-7.xml'].forEach(addOption);
             if (select.options.length) {
                 select.selectedIndex = 0;
                 loadSelectedXML(select.value);
             }
+        })
+        .finally(() => {
+            xmlDropdownLoading = false;
+            xmlDropdownInitialized = true;
         });
 }

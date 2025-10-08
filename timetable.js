@@ -137,14 +137,63 @@ function getMappings(xmlDoc) {
 // Add at the beginning of the file
 async function loadDefaultXML() {
     try {
-        const response = await fetch('timetables/asctt2012.xml');
-        const xmlText = await response.text();
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
-        if (xmlDoc.querySelector('parsererror')) {
-            throw new Error('Invalid XML file');
+        // Try to list available XML files in the timetables folder
+        const dirRes = await fetch('timetables/');
+        if (dirRes.ok) {
+            const html = await dirRes.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const links = Array.from(doc.querySelectorAll('a')).map(a => a.getAttribute('href') || '');
+            const xmlFiles = links.filter(href => href.toLowerCase().endsWith('.xml'));
+
+            if (xmlFiles.length > 0) {
+                // Pick the first XML file
+                const path = `timetables/${xmlFiles[0]}`;
+                const fileRes = await fetch(path);
+                const xmlText = await fileRes.text();
+                const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+                if (xmlDoc.querySelector('parsererror')) {
+                    throw new Error('Invalid XML file');
+                }
+                return xmlDoc;
+            }
         }
-        return xmlDoc;
+
+        // Fallback: try known timetable files
+        const fallbackFiles = ['term4week4.xml', 'term4week5.xml', 'term4week6-7.xml'];
+        for (const name of fallbackFiles) {
+            try {
+                const res = await fetch(`timetables/${name}`);
+                if (res.ok) {
+                    const xmlText = await res.text();
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+                    if (xmlDoc.querySelector('parsererror')) {
+                        continue; // try next
+                    }
+                    return xmlDoc;
+                }
+            } catch {
+                // continue to next fallback
+            }
+        }
+
+        // Last resort: root-level asctt2012.xml (if present)
+        try {
+            const res = await fetch('asctt2012.xml');
+            if (res.ok) {
+                const xmlText = await res.text();
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+                if (!xmlDoc.querySelector('parsererror')) {
+                    return xmlDoc;
+                }
+            }
+        } catch {
+            // ignore and throw below
+        }
+
+        throw new Error('No XML timetable files found in timetables/ or project root');
     } catch (error) {
         console.warn('Failed to load default XML:', error);
         return null;
@@ -200,7 +249,8 @@ function populateDepartmentSelect() {
 async function previewTimetable() {
     const fileInput = document.getElementById('xmlFile');
     const previewSection = document.getElementById('previewSection');
-    const teacherSelect = document.getElementById('teacherSelect');
+    const deptEl = document.getElementById('departmentSelect');
+    const teacherEl = document.getElementById('teacherSelect');
 
     try {
         if (!xmlData) {
@@ -216,29 +266,27 @@ async function previewTimetable() {
             mappings = getMappings(xmlData);
         }
 
-        // Always populate dropdowns once XML/mappings are ready
-        const deptEl = document.getElementById('departmentSelect');
-        const teacherEl = document.getElementById('teacherSelect');
+        // Populate and reset department, then populate teachers
         if (deptEl) {
             populateDepartmentSelect();
-            // Reset filter to "All Departments" so teacher list starts populated
             deptEl.value = '';
         }
         if (teacherEl) {
             updateTeacherSelect();
-            // Auto-select first teacher and render preview when nothing selected yet
+            // Auto-select first real teacher option if none selected yet
             if (!teacherEl.value && teacherEl.options.length > 1) {
                 teacherEl.selectedIndex = 1;
-                updatePreview(teacherEl.value);
             }
         }
 
+        // Show preview section
         if (previewSection) {
             previewSection.style.display = 'block';
         }
-        
-        if (teacherSelect && teacherSelect.value) {
-            updatePreview(teacherSelect.value);
+
+        // Render preview if we have a teacher selected
+        if (teacherEl && teacherEl.value) {
+            updatePreview(teacherEl.value);
         }
     } catch (error) {
         alert(`Error loading preview: ${error.message}`);
@@ -323,17 +371,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const deptEl = document.getElementById('departmentSelect');
     if (deptEl) {
-        // Ensure department is reset and teacher list is populated on load
+        // Reset on load and bind change
         deptEl.value = '';
         deptEl.addEventListener('change', updateTeacherSelect);
     }
 
     const teacherSelect = document.getElementById('teacherSelect');
     if (teacherSelect) {
+        // Ensure teachers are populated and bind change
         updateTeacherSelect();
         teacherSelect.addEventListener('change', (e) => {
             updatePreview(e.target.value);
         });
+
+        // Trigger initial preview if a teacher is selected
+        if (teacherSelect.value) {
+            updatePreview(teacherSelect.value);
+        }
     }
 });
 
