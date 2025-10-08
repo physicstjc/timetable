@@ -6,7 +6,8 @@
     <title>Teacher Timetable iCal Generator</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/ical.js"></script>
+    <!-- Removed CDN ical.js to avoid ES module 'export' parse error -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/ical.js"></script> -->
 </head>
 <body>
     <div id="header-placeholder"></div>
@@ -56,25 +57,31 @@
         <main>
             <section id="previewSection" class="preview-section card">
                 <h2>Generate Preview</h2>
+                <!-- Inside the form-grid, add the XML dropdown -->
                 <div class="form-grid">
                     <!-- Add this before the teacher select -->
                     <div class="form-group">
-                        <label for="departmentSelect">Department:</label>
-                        <select id="departmentSelect" class="select-input">
-                            <option value="">All Departments</option>
-                        </select>
+                        <label for="xmlSelect">Timetable XML:</label>
+                        <select id="xmlSelect" class="select-input"></select>
                     </div>
+
+                    <!-- Department filter -->
+                    <div class="form-group">
+                        <label for="departmentSelect">Department:</label>
+                        <select id="departmentSelect" class="select-input"></select>
+                    </div>
+
                     <div class="form-group">
                         <label for="teacherSelect">Select Teacher:</label>
                         <select id="teacherSelect" class="select-input"></select>
                     </div>
                     <div class="form-group">
                         <label for="startDate">Start Date:</label>
-                        <input type="date" id="startDate" class="date-input" value="2025-09-22">
+                        <input type="date" id="startDate" class="date-input">
                     </div>
                     <div class="form-group">
                         <label for="endDate">End Date:</label>
-                        <input type="date" id="endDate" class="date-input" value="2025-09-26">
+                        <input type="date" id="endDate" class="date-input">
                     </div>
                     <div class="form-group">
                         <label for="weekType">Starting Week Type:</label>
@@ -186,6 +193,94 @@ fetch('header.html')
         });
     })
     .catch(error => console.error('Error loading header:', error));
+
+// Dropdown-based XML loader
+async function loadSelectedXML(path) {
+    try {
+        const response = await fetch(path);
+        const xmlText = await response.text();
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+        if (xmlDoc.querySelector('parsererror')) {
+            throw new Error('Invalid XML file');
+        }
+        // Apply XML to timetable.js state and refresh UI
+        if (typeof window.setTimetableXML === 'function') {
+            window.setTimetableXML(xmlDoc);
+        }
+    } catch (err) {
+        console.error('Failed to load selected XML:', err);
+        alert(`Failed to load selected XML: ${err.message}`);
+    }
+}
+
+// Dynamically populate the XML dropdown by parsing directory listing
+async function populateXMLDropdown() {
+    const select = document.getElementById('xmlSelect');
+    if (!select) return;
+
+    try {
+        const res = await fetch('timetables/');
+        const html = await res.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const links = Array.from(doc.querySelectorAll('a'));
+        const xmlFiles = links
+            .map(a => a.getAttribute('href') || '')
+            .filter(href => href.toLowerCase().endsWith('.xml'));
+
+        // Build options
+        select.innerHTML = '';
+        xmlFiles.forEach(name => {
+            const option = document.createElement('option');
+            option.value = `timetables/${name}`;
+            option.textContent = name;
+            select.appendChild(option);
+        });
+
+        // Fallback if no listing available
+        if (select.options.length === 0) {
+            ['asctt2012.xml', 'term4week5.xml', 'term4week6-7.xml'].forEach(name => {
+                const option = document.createElement('option');
+                option.value = `timetables/${name}`;
+                option.textContent = name;
+                select.appendChild(option);
+            });
+        }
+
+        // Auto-load first item if none selected
+        if (!select.value && select.options.length > 0) {
+            select.selectedIndex = 0;
+            loadSelectedXML(select.value);
+        }
+    } catch (e) {
+        console.error('Failed to list timetables directory:', e);
+        // Fallback: use known filenames
+        const files = ['asctt2012.xml', 'term4week5.xml', 'term4week6-7.xml'];
+        select.innerHTML = '';
+        files.forEach(name => {
+            const option = document.createElement('option');
+            option.value = `timetables/${name}`;
+            option.textContent = name;
+            select.appendChild(option);
+        });
+        if (select.options.length > 0) {
+            select.selectedIndex = 0;
+            loadSelectedXML(select.value);
+        }
+    }
+}
+
+// Initialize XML dropdown and hook change events
+document.addEventListener('DOMContentLoaded', () => {
+    const xmlSelect = document.getElementById('xmlSelect');
+    if (xmlSelect) {
+        xmlSelect.addEventListener('change', (e) => {
+            loadSelectedXML(e.target.value);
+        });
+    }
+    populateXMLDropdown();
+});
 </script>
 </body>
 </html>

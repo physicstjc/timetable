@@ -55,6 +55,52 @@ async function loadDefaultTimetable() {
     }
 }
 
+// Top-level helpers to load a selected XML and populate dropdown
+async function loadSelectedXML(path) {
+    try {
+        const response = await fetch(path);
+        const text = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, 'text/xml');
+        if (doc.querySelector('parsererror')) {
+            throw new Error('Invalid XML file');
+        }
+        xmlData = doc;
+
+        // Rebuild mappings from xmlData
+        mappings = {
+            teachers: {},
+            subjects: {},
+            rooms: {},
+            classes: {},
+            periods: {},
+            daysdef: {}
+        };
+        ['teachers', 'subjects', 'classrooms', 'classes', 'periods', 'daysdef'].forEach(type => {
+            const elements = xmlData.querySelectorAll(type === 'classrooms' ? 'classroom' : type.slice(0, -1));
+            elements.forEach(element => {
+                const id = type === 'periods' ? element.getAttribute('period') : element.getAttribute('id');
+                mappings[type === 'classrooms' ? 'rooms' : type][id] = {
+                    id: id,
+                    name: element.getAttribute('name'),
+                    short: element.getAttribute('short'),
+                    ...(type === 'periods' && { start: element.getAttribute('starttime') })
+                };
+            });
+        });
+
+        // Refresh UI based on new XML
+        populateDepartmentSelect();
+        updateTeacherCheckboxes();
+        updateSelectedTeachersList();
+        updateGroupManagement();
+        updateComparison();
+    } catch (err) {
+        console.error('Failed to load selected XML:', err);
+        alert(`Failed to load selected XML: ${err.message}`);
+    }
+}
+
 function populateDepartmentSelect() {
     const departmentSelect = document.getElementById('departmentSelect');
     departmentSelect.innerHTML = '<option value="">All Departments</option>';
@@ -473,23 +519,35 @@ function clearSearch() {
 document.addEventListener('DOMContentLoaded', () => {
     loadDefaultTimetable();
     
+    // Initialize XML dropdown and hook change event
+    populateXMLDropdown();
+    const xmlSelect = document.getElementById('xmlSelect');
+    if (xmlSelect) {
+        xmlSelect.addEventListener('change', (e) => {
+            loadSelectedXML(e.target.value);
+        });
+    } else {
+        // Fallback to default loading if dropdown not present
+        loadDefaultTimetable();
+    }
+
     // Set default day to current day
     const daySelect = document.getElementById('daySelect');
     daySelect.value = getCurrentDayIndex();
-    
-    // Add event listeners for day and week type changes
+
+    // Existing listeners
     daySelect.addEventListener('change', updateComparison);
     document.getElementById('weekType').addEventListener('change', updateComparison);
-    
-    document.getElementById('departmentSelect').addEventListener('change', () => {
-        updateTeacherCheckboxes();
-        filterTeachers(); // Apply search filter after department change
-    });
-    
-    // Setup search functionality
+
+    const deptSelect = document.getElementById('departmentSelect');
+    if (deptSelect) {
+        deptSelect.addEventListener('change', () => {
+            updateTeacherCheckboxes();
+            filterTeachers();
+        });
+    }
+
     setupSearchFunctionality();
-    
-    // Setup group management
     setupGroupManagement();
 });
 
@@ -674,3 +732,43 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('departments1').addEventListener('change', () => updateTeacherSelect(1));
     document.getElementById('departments2').addEventListener('change', () => updateTeacherSelect(2));
 });
+
+function populateXMLDropdown() {
+    const select = document.getElementById('xmlSelect');
+    if (!select) return;
+
+    select.innerHTML = '';
+    const addOption = (name) => {
+        const option = document.createElement('option');
+        option.value = `timetables/${name}`;
+        option.textContent = name;
+        select.appendChild(option);
+    };
+
+    // Try to list directory; if not available, use fallback list
+    fetch('timetables/')
+        .then(res => res.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const links = Array.from(doc.querySelectorAll('a')).map(a => a.getAttribute('href') || '');
+            const xmlFiles = links.filter(href => href.toLowerCase().endsWith('.xml'));
+            if (xmlFiles.length) {
+                xmlFiles.forEach(name => addOption(name));
+            } else {
+                ['asctt2012.xml', 'term4week4.xml', 'term4week5.xml', 'term4week6-7.xml'].forEach(addOption);
+            }
+            // Select first and load
+            if (select.options.length) {
+                select.selectedIndex = 0;
+                loadSelectedXML(select.value);
+            }
+        })
+        .catch(() => {
+            ['asctt2012.xml', 'term4week4.xml', 'term4week5.xml', 'term4week6-7.xml'].forEach(addOption);
+            if (select.options.length) {
+                select.selectedIndex = 0;
+                loadSelectedXML(select.value);
+            }
+        });
+}

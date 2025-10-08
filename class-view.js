@@ -252,8 +252,117 @@ function findLessonsForClassPeriodDay(classId, periodId, dayIndex) {
 }
 
 // Initialize the page
+async function loadSelectedXML(path) {
+    try {
+        const response = await fetch(path);
+        const text = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, 'text/xml');
+        if (doc.querySelector('parsererror')) {
+            throw new Error('Invalid XML file');
+        }
+        xmlData = doc;
+
+        // Rebuild mappings from xmlData
+        mappings = {
+            teachers: {},
+            subjects: {},
+            rooms: {},
+            classes: {},
+            periods: {},
+            daysdef: {}
+        };
+
+        ['teachers', 'subjects', 'classrooms', 'classes', 'periods', 'daysdef'].forEach(type => {
+            let elementSelector;
+            if (type === 'classrooms') {
+                elementSelector = 'classroom';
+            } else if (type === 'classes') {
+                elementSelector = 'class';
+            } else {
+                elementSelector = type.slice(0, -1);
+            }
+            const elements = xmlData.querySelectorAll(elementSelector);
+            elements.forEach(element => {
+                const id = type === 'periods' ? element.getAttribute('period') : element.getAttribute('id');
+                mappings[type === 'classrooms' ? 'rooms' : type][id] = {
+                    id: id,
+                    name: element.getAttribute('name'),
+                    short: element.getAttribute('short'),
+                    ...(type === 'periods' && {
+                        start: element.getAttribute('starttime'),
+                        end: element.getAttribute('endtime')
+                    })
+                };
+            });
+        });
+
+        // Repopulate classes based on new XML
+        populateClassSelect();
+
+        // Clear current class selection and timetable
+        const classSelect = document.getElementById('classSelect');
+        if (classSelect) {
+            classSelect.value = '';
+        }
+        selectedClassId = null;
+        clearTimetable();
+    } catch (err) {
+        console.error('Failed to load selected XML:', err);
+        alert(`Failed to load selected XML: ${err.message}`);
+    }
+}
+
+function populateXMLDropdown() {
+    const select = document.getElementById('xmlSelect');
+    if (!select) return;
+
+    select.innerHTML = '';
+    const addOption = (name) => {
+        const option = document.createElement('option');
+        option.value = `timetables/${name}`;
+        option.textContent = name;
+        select.appendChild(option);
+    };
+
+    // Try listing the timetables directory; fallback to known list
+    fetch('timetables/')
+        .then(res => res.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const links = Array.from(doc.querySelectorAll('a')).map(a => a.getAttribute('href') || '');
+            const xmlFiles = links.filter(href => href.toLowerCase().endsWith('.xml'));
+            if (xmlFiles.length) {
+                xmlFiles.forEach(addOption);
+            } else {
+                ['asctt2012.xml', 'term4week4.xml', 'term4week5.xml', 'term4week6-7.xml'].forEach(addOption);
+            }
+            if (select.options.length) {
+                select.selectedIndex = 0;
+                loadSelectedXML(select.value);
+            }
+        })
+        .catch(() => {
+            ['asctt2012.xml', 'term4week4.xml', 'term4week5.xml', 'term4week6-7.xml'].forEach(addOption);
+            if (select.options.length) {
+                select.selectedIndex = 0;
+                loadSelectedXML(select.value);
+            }
+        });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-    loadDefaultTimetable();
+    const xmlSelect = document.getElementById('xmlSelect');
+    if (xmlSelect) {
+        populateXMLDropdown();
+        xmlSelect.addEventListener('change', (e) => {
+            loadSelectedXML(e.target.value);
+        });
+    } else {
+        // Fallback if XML dropdown is not present
+        loadDefaultTimetable();
+    }
 });
 
 // Make functions available globally
