@@ -86,7 +86,7 @@ window.setTimetableXML = setTimetableXML;
             updatePreview(e.target.value);
         };
     }
-}
+
 window.setTimetableXML = setTimetableXML;
 
 function loadXMLData(file) {
