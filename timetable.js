@@ -30,15 +30,12 @@ function setTimetableXML(xmlDoc) {
     if (teacherSelect) {
         updateTeacherSelect();
 
-        // Auto-select first teacher (skip placeholder) and refresh preview
-        if (teacherSelect.options.length > 1) {
-            teacherSelect.selectedIndex = 1;
-            updatePreview(teacherSelect.value);
-        } else {
-            // Clear any existing tables if no teachers available
-            const tablesContainer = document.getElementById('timetableTables');
-            if (tablesContainer) tablesContainer.innerHTML = '';
-        }
+        // Keep blank default; do not auto-select any teacher
+        teacherSelect.selectedIndex = 0;
+
+        // Clear preview since no teacher is selected by default
+        const tablesContainer = document.getElementById('timetableTables');
+        if (tablesContainer) tablesContainer.innerHTML = '';
 
         // Ensure teacher change triggers preview refresh
         teacherSelect.onchange = (e) => {
@@ -274,10 +271,9 @@ async function previewTimetable() {
         }
         if (teacherEl) {
             updateTeacherSelect();
-            // Auto-select first real teacher option if none selected yet
-            if (!teacherEl.value && teacherEl.options.length > 1) {
-                teacherEl.selectedIndex = 1;
-            }
+
+            // Keep blank default; do not auto-select any teacher
+            teacherEl.selectedIndex = 0;
         }
 
         // Show preview section
@@ -285,7 +281,7 @@ async function previewTimetable() {
             previewSection.style.display = 'block';
         }
 
-        // Render preview if we have a teacher selected
+        // Render preview if a teacher is selected
         if (teacherEl && teacherEl.value) {
             updatePreview(teacherEl.value);
         }
@@ -324,6 +320,7 @@ function updateTeacherSelect() {
 
     // If filtering yields zero teachers, fall back to rendering all so the list isn't blank.
     const toRender = filtered.length > 0 ? filtered : entries;
+        // Reset and populate with a blank placeholder
     teacherSelect.innerHTML = '<option value="">Select a teacher...</option>';
     toRender
         .sort(([, a], [, b]) => a.name.localeCompare(b.name))
@@ -334,6 +331,13 @@ function updateTeacherSelect() {
             teacherSelect.appendChild(option);
         });
 
+    // Do not auto-select any teacher; keep blank selected
+    teacherSelect.selectedIndex = 0;
+
+    if (!teacherSelect.value) {
+        const tablesContainer = document.getElementById('timetableTables');
+        if (tablesContainer) tablesContainer.innerHTML = '';
+    }
         // Auto-select first teacher (skip placeholder) and refresh preview
     if (teacherSelect.options.length > 1) {
         teacherSelect.selectedIndex = 1;
@@ -381,11 +385,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (teacherSelect) {
         // Ensure teachers are populated and bind change
         updateTeacherSelect();
+
+        // Ensure blank default on page load and clear preview
+        teacherSelect.selectedIndex = 0;
+        const tablesContainer = document.getElementById('timetableTables');
+        if (tablesContainer) tablesContainer.innerHTML = '';
+
         teacherSelect.addEventListener('change', (e) => {
             updatePreview(e.target.value);
         });
 
-        // Trigger initial preview if a teacher is selected
+        // Trigger initial preview only if a teacher is selected (blank by default)
         if (teacherSelect.value) {
             updatePreview(teacherSelect.value);
         }
