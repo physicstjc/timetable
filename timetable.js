@@ -580,6 +580,8 @@ window.createTeacherCalendar = function(teacherId, startDate, endDate, startWeek
     cal.updatePropertyWithValue('prodid', '-//Timetable Calendar//EN');
     cal.updatePropertyWithValue('version', '2.0');
     cal.updatePropertyWithValue('calscale', 'GREGORIAN');
+    cal.updatePropertyWithValue('x-wr-calname', `Timetable - ${teacherId}`);
+    cal.updatePropertyWithValue('x-wr-timezone', 'Asia/Singapore');
 
     const lessons = xmlData.querySelectorAll(`lesson[teacherids*="${teacherId}"]`);
     console.log(`Found ${lessons.length} total lessons for teacher ${teacherId}`);
@@ -695,10 +697,12 @@ window.createTeacherCalendar = function(teacherId, startDate, endDate, startWeek
                 .setParameter('tzid', 'Asia/Singapore');
             vevent.addPropertyWithValue('dtend', ICAL.Time.fromJSDate(endTime))
                 .setParameter('tzid', 'Asia/Singapore');
+            vevent.addPropertyWithValue('dtstamp', ICAL.Time.fromJSDate(new Date()));
             vevent.addPropertyWithValue('location', roomDisplay);
             vevent.addPropertyWithValue('description', classNames);
             vevent.addPropertyWithValue('status', 'CONFIRMED');
-            vevent.addPropertyWithValue('uid', `${lessonId}-${group.dayIndex}-${group.weeks}`);
+            const uidValue = `${lessonId}-${group.dayIndex}-${group.weeks}-${group.startPeriod}-${group.endPeriod}-${roomIds.join('_')}`;
+            vevent.addPropertyWithValue('uid', uidValue);
 
             const untilDate = new Date(endDate);
             untilDate.setHours(23, 59, 59);
