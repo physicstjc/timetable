@@ -327,7 +327,10 @@ function populateXMLDropdown() {
 
     // Try listing the timetables directory; fallback to known list
     fetch('timetables/')
-        .then(res => res.text())
+        .then(res => {
+            if (!res.ok) throw new Error(`Failed to list timetables/: ${res.status}`);
+            return res.text();
+        })
         .then(html => {
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
@@ -344,12 +347,18 @@ function populateXMLDropdown() {
             }
         })
         .catch(() => {
-            ['asctt2012.xml', 'term4week4.xml', 'term4week5.xml', 'term4week6-7.xml'].forEach(addOption);
-            if (select.options.length) {
-                select.selectedIndex = 0;
-                loadSelectedXML(select.value);
-            }
+            // Fallback: use known filenames only from timetables/ (no asctt2012.xml)
+            ['term4week4.xml', 'term4week5.xml', 'term4week6-7.xml'].forEach(addOption);
+            loadSelectedXML(select.value);
         });
+
+    if (select.options.length) {
+        select.selectedIndex = 0;
+        loadSelectedXML(select.value);
+    }
+    // Secondary fallback block: ensure asctt2012.xml is excluded
+    ['term4week4.xml', 'term4week5.xml', 'term4week6-7.xml'].forEach(addOption);
+    loadSelectedXML(select.value);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
