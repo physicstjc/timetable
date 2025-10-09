@@ -317,15 +317,23 @@ function populateXMLDropdown() {
     const select = document.getElementById('xmlSelect');
     if (!select) return;
 
+    // Reset dropdown
     select.innerHTML = '';
+
+    // Helper to add unique options (normalize to basename)
+    const added = new Set();
     const addOption = (name) => {
+        const fileName = name.split('/').pop(); // normalize in case listing includes a path
+        if (added.has(fileName)) return;
+        added.add(fileName);
+
         const option = document.createElement('option');
-        option.value = `timetables/${name}`;
-        option.textContent = name;
+        option.value = `timetables/${fileName}`;
+        option.textContent = fileName;
         select.appendChild(option);
     };
 
-    // Try listing the timetables directory; fallback to known list
+    // Try listing the timetables directory; fallback to known list (exclude asctt2012.xml)
     fetch('timetables/')
         .then(res => {
             if (!res.ok) throw new Error(`Failed to list timetables/: ${res.status}`);
@@ -336,20 +344,23 @@ function populateXMLDropdown() {
             const doc = parser.parseFromString(html, 'text/html');
             const links = Array.from(doc.querySelectorAll('a')).map(a => a.getAttribute('href') || '');
             const xmlFiles = links.filter(href => href.toLowerCase().endsWith('.xml'));
+
             if (xmlFiles.length) {
                 xmlFiles.forEach(addOption);
             } else {
-                ['asctt2012.xml', 'term4week4.xml', 'term4week5.xml', 'term4week6-7.xml'].forEach(addOption);
+                ['term4week4.xml', 'term4week5.xml', 'term4week6-7.xml'].forEach(addOption);
             }
+        })
+        .catch(() => {
+            // Fallback: known filenames only from timetables/ (no asctt2012.xml)
+            ['term4week4.xml', 'term4week5.xml', 'term4week6-7.xml'].forEach(addOption);
+        })
+        .finally(() => {
+            // Select first option and load once
             if (select.options.length) {
                 select.selectedIndex = 0;
                 loadSelectedXML(select.value);
             }
-        })
-        .catch(() => {
-            // Fallback: use known filenames only from timetables/ (no asctt2012.xml)
-            ['term4week4.xml', 'term4week5.xml', 'term4week6-7.xml'].forEach(addOption);
-            loadSelectedXML(select.value);
         });
 
     if (select.options.length) {
