@@ -47,47 +47,6 @@ function setTimetableXML(xmlDoc) {
     }
 }
 window.setTimetableXML = setTimetableXML;
-    // Update internal state
-    xmlData = xmlDoc;
-    window.xmlData = xmlDoc;
-    mappings = getMappings(xmlDoc);
-
-    // Show preview section if present
-    const previewSection = document.getElementById('previewSection');
-    if (previewSection) {
-        previewSection.style.display = 'block';
-    }
-
-    // Refresh department and teacher lists if elements exist
-    const departmentSelect = document.getElementById('departmentSelect');
-    const teacherSelect = document.getElementById('teacherSelect');
-
-    if (departmentSelect) {
-        populateDepartmentSelect();
-        // Reset filter to "All Departments" to avoid empty teacher list after XML change
-        departmentSelect.value = '';
-    }
-
-    if (teacherSelect) {
-        updateTeacherSelect();
-
-        // Auto-select first teacher (skip placeholder) and refresh preview
-        if (teacherSelect.options.length > 1) {
-            teacherSelect.selectedIndex = 1;
-            updatePreview(teacherSelect.value);
-        } else {
-            // Clear any existing tables if no teachers available
-            const tablesContainer = document.getElementById('timetableTables');
-            if (tablesContainer) tablesContainer.innerHTML = '';
-        }
-
-        // Ensure teacher change triggers preview refresh
-        teacherSelect.onchange = (e) => {
-            updatePreview(e.target.value);
-        };
-    }
-
-window.setTimetableXML = setTimetableXML;
 
 function loadXMLData(file) {
     return new Promise((resolve, reject) => {
