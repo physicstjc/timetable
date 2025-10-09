@@ -8,6 +8,48 @@ let showEvenWeeks = true;  // Show even week timetables
 function setTimetableXML(xmlDoc) {
     // Update internal state
     xmlData = xmlDoc;
+    window.xmlData = xmlDoc;
+    mappings = getMappings(xmlDoc);
+
+    // Show preview section if present
+    const previewSection = document.getElementById('previewSection');
+    if (previewSection) {
+        previewSection.style.display = 'block';
+    }
+
+    // Refresh department and teacher lists if elements exist
+    const departmentSelect = document.getElementById('departmentSelect');
+    const teacherSelect = document.getElementById('teacherSelect');
+
+    if (departmentSelect) {
+        populateDepartmentSelect();
+        // Reset filter to "All Departments" to avoid empty teacher list after XML change
+        departmentSelect.value = '';
+    }
+
+    if (teacherSelect) {
+        updateTeacherSelect();
+
+        // Auto-select first teacher (skip placeholder) and refresh preview
+        if (teacherSelect.options.length > 1) {
+            teacherSelect.selectedIndex = 1;
+            updatePreview(teacherSelect.value);
+        } else {
+            // Clear any existing tables if no teachers available
+            const tablesContainer = document.getElementById('timetableTables');
+            if (tablesContainer) tablesContainer.innerHTML = '';
+        }
+
+        // Ensure teacher change triggers preview refresh
+        teacherSelect.onchange = (e) => {
+            updatePreview(e.target.value);
+        };
+    }
+}
+window.setTimetableXML = setTimetableXML;
+    // Update internal state
+    xmlData = xmlDoc;
+    window.xmlData = xmlDoc;
     mappings = getMappings(xmlDoc);
 
     // Show preview section if present
@@ -395,16 +437,16 @@ function updatePreview(teacherId) {
     const previewSection = document.getElementById('previewSection');
     if (!previewSection) return;
 
+    // Ensure a container exists to hold the week tables
     let tablesContainer = document.getElementById('timetableTables');
     if (!tablesContainer) {
         tablesContainer = document.createElement('div');
         tablesContainer.id = 'timetableTables';
         previewSection.appendChild(tablesContainer);
     }
-    
-    // Update only the tables container with odd/even week tables based on configuration
+
+    // Build odd/even week tables
     let tablesHTML = '<div class="timetable-container">';
-    
     if (showOddWeeks) {
         tablesHTML += `
             <div class="week-table">
@@ -423,7 +465,6 @@ function updatePreview(teacherId) {
                 </table>
             </div>`;
     }
-    
     if (showEvenWeeks) {
         tablesHTML += `
             <div class="week-table">
@@ -442,10 +483,12 @@ function updatePreview(teacherId) {
                 </table>
             </div>`;
     }
-    
     tablesHTML += '</div>';
+
+    // Write into the container
     tablesContainer.innerHTML = tablesHTML;
 
+    // Continue with filling rows...
     const oddWeekTable = showOddWeeks ? document.getElementById('oddWeekTable').getElementsByTagName('tbody')[0] : null;
     const evenWeekTable = showEvenWeeks ? document.getElementById('evenWeekTable').getElementsByTagName('tbody')[0] : null;
     const lessons = xmlData.querySelectorAll(`lesson[teacherids*="${teacherId}"]`);
@@ -573,7 +616,7 @@ function updatePreview(teacherId) {
     }
 }
 
-function createTeacherCalendar(teacherId, startDate, endDate, startWeekType) {
+window.createTeacherCalendar = function(teacherId, startDate, endDate, startWeekType) {
     const cal = new ICAL.Component(['vcalendar', [], []]);
     cal.updatePropertyWithValue('prodid', '-//Timetable Calendar//EN');
     cal.updatePropertyWithValue('version', '2.0');
@@ -751,7 +794,7 @@ function createEventForCard(calendar, card, lesson, weekStart) {
     calendar.addSubcomponent(vevent);
 }
 
-function downloadICS(calendar, teacherShort) {
+window.downloadICS = function(calendar, teacherShort) {
     const blob = new Blob([calendar.toString()], { type: 'text/calendar' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');

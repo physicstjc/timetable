@@ -197,19 +197,30 @@ fetch('header.html')
 async function loadSelectedXML(path) {
     try {
         const response = await fetch(path);
+        if (!response.ok) throw new Error(`HTTP ${response.status} when fetching ${path}`);
         const xmlText = await response.text();
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
         if (xmlDoc.querySelector('parsererror')) {
             throw new Error('Invalid XML file');
         }
-        // Apply XML to timetable.js state and refresh UI
+
+        // Always set global XML so processXML() can proceed
+        window.xmlData = xmlDoc;
+
+        // If timetable.js is loaded, let it update UI state
         if (typeof window.setTimetableXML === 'function') {
             window.setTimetableXML(xmlDoc);
+        } else {
+            console.warn('setTimetableXML not available yet; preview may not update until timetable.js loads.');
         }
+
+        // Return the parsed document so callers can await it
+        return xmlDoc;
     } catch (err) {
         console.error('Failed to load selected XML:', err);
         alert(`Failed to load selected XML: ${err.message}`);
+        return null;
     }
 }
 
@@ -254,12 +265,16 @@ async function populateXMLDropdown() {
         }
     } catch (e) {
         console.error('Failed to list timetables directory:', e);
-        // Fallback: use known filenames
-        const files = ['asctt2012.xml', 'term4week5.xml', 'term4week6-7.xml'];
+        // Fallback: use known filenames only from timetables/ (no asctt2012.xml)
+        const files = [
+            { name: 'term4week4.xml', path: 'timetables/term4week4.xml' },
+            { name: 'term4week5.xml', path: 'timetables/term4week5.xml' },
+            { name: 'term4week6-7.xml', path: 'timetables/term4week6-7.xml' },
+        ];
         select.innerHTML = '';
-        files.forEach(name => {
+        files.forEach(({ name, path }) => {
             const option = document.createElement('option');
-            option.value = `timetables/${name}`;
+            option.value = path;
             option.textContent = name;
             select.appendChild(option);
         });
@@ -280,6 +295,69 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     populateXMLDropdown();
 });
+    async function processXML() {
+        const teacherSelect = document.getElementById('teacherSelect');
+        const startDateInput = document.getElementById('startDate');
+        const endDateInput = document.getElementById('endDate');
+        const weekTypeSelect = document.getElementById('weekType');
+        const progressEl = document.getElementById('progress');
+
+        // Basic validations
+        if (!teacherSelect || !teacherSelect.value) {
+            alert('Please select a teacher before generating the calendar.');
+            return;
+        }
+        if (!startDateInput || !startDateInput.value) {
+            alert('Please select a Start Date.');
+            return;
+        }
+        if (!endDateInput || !endDateInput.value) {
+            alert('Please select an End Date.');
+            return;
+        }
+        if (!weekTypeSelect || !weekTypeSelect.value) {
+            alert('Please select Starting Week Type (Odd/Even).');
+            return;
+        }
+
+        // If XML not yet loaded, try loading the currently selected option and wait
+        if (!window.xmlData) {
+            const xmlSelect = document.getElementById('xmlSelect');
+            if (xmlSelect && xmlSelect.value) {
+                await loadSelectedXML(xmlSelect.value);
+            }
+        }
+        if (!window.xmlData) {
+            alert('No timetable XML loaded. Please select a timetable XML first.');
+            return;
+        }
+        if (typeof window.createTeacherCalendar !== 'function' || typeof window.downloadICS !== 'function') {
+            alert('Calendar generation functions are not available. Please ensure timetable.js is loaded.');
+            return;
+        }
+
+        // Show progress
+        if (progressEl) {
+            progressEl.textContent = 'Generating calendar...';
+        }
+
+        // Generate and download ICS
+        const teacherId = teacherSelect.value;
+        const startDate = startDateInput.value;
+        const endDate = endDateInput.value;
+        const startWeekType = weekTypeSelect.value;
+        const calendar = window.createTeacherCalendar(teacherId, startDate, endDate, startWeekType);
+
+        // Use the teacher short name or ID for filename
+        const teacherOption = teacherSelect.selectedOptions[0];
+        const label = teacherOption ? teacherOption.textContent.trim() : teacherId;
+        window.downloadICS(calendar, label);
+
+        if (progressEl) {
+            progressEl.textContent = 'Calendar generated.';
+            setTimeout(() => progressEl.textContent = '', 1500);
+        }
+    }
 </script>
 </body>
 </html>
