@@ -250,7 +250,7 @@ async function populateXMLDropdown() {
 
         // Fallback if no listing available
         if (select.options.length === 0) {
-            ['term4week4.xml', 'term4week5.xml', 'term4week6-7.xml'].forEach(name => {
+            ['term4week5.xml', 'term4week6-7.xml'].forEach(name => {
                 const option = document.createElement('option');
                 option.value = `timetables/${name}`;
                 option.textContent = name;
@@ -267,7 +267,6 @@ async function populateXMLDropdown() {
         console.error('Failed to list timetables directory:', e);
         // Fallback: use known filenames only from timetables/ (no asctt2012.xml)
         const files = [
-            { name: 'term4week4.xml', path: 'timetables/term4week4.xml' },
             { name: 'term4week5.xml', path: 'timetables/term4week5.xml' },
             { name: 'term4week6-7.xml', path: 'timetables/term4week6-7.xml' },
         ];
