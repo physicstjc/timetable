@@ -158,7 +158,7 @@ async function loadDefaultXML() {
         }
 
         // Fallback: try known timetable files
-        const fallbackFiles = ['term4week5.xml', 'term4week6-7.xml'];
+        const fallbackFiles = ['term4week6-7.xml', 'term4week9-11.xml'];
         for (const name of fallbackFiles) {
             try {
                 const res = await fetch(`timetables/${name}`);
