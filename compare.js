@@ -748,7 +748,7 @@ function populateXMLDropdown() {
             if (xmlFiles.length) {
                 xmlFiles.forEach(name => addOption(name));
             } else {
-                ['term4week5.xml', 'term4week6-7.xml'].forEach(addOption);
+                ['term4week6-7.xml', 'term4week9-11.xml'].forEach(addOption);
             }
             if (select.options.length) {
                 select.selectedIndex = 0;
@@ -756,7 +756,7 @@ function populateXMLDropdown() {
             }
         })
         .catch(() => {
-            ['term4week5.xml', 'term4week6-7.xml'].forEach(addOption);
+            ['term4week6-7.xml', 'term4week9-11.xml'].forEach(addOption);
             if (select.options.length) {
                 select.selectedIndex = 0;
                 loadSelectedXML(select.value);
