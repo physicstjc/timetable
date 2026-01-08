@@ -13,7 +13,7 @@ let selectedClassId = null;
 // Load default timetable data
 async function loadDefaultTimetable() {
     try {
-        const response = await fetch('timetables/asctt2012.xml');
+        const response = await fetch('timetables/SOTY2026.xml');
         const text = await response.text();
         const parser = new DOMParser();
         xmlData = parser.parseFromString(text, 'text/xml');
