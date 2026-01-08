@@ -16,7 +16,7 @@ let savedGroups = JSON.parse(localStorage.getItem('teacherGroups') || '{}');
 async function loadDefaultTimetable() {
     try {
         // Try known timetable files inside timetables/ directly (no directory listing)
-        const fallbackFiles = ['term4week5.xml', 'term4week6-7.xml'];
+        const fallbackFiles = ['SOTY2026.xml', 'term4week6-7.xml'];
         for (const name of fallbackFiles) {
             try {
                 const res = await fetch(`timetables/${name}`);
