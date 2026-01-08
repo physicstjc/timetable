@@ -128,9 +128,8 @@ function updateComparison() {
 
     const selectedDay = parseInt(document.getElementById('daySelect').value);
     const weekType = document.getElementById('weekType').value;
-    // Reverse the week patterns to match the correct weeks
     const weekPattern = weekType === 'odd' ? '10' : '01';
-    const everyWeekPattern = '11'; // Pattern for every week
+    const everyWeekPattern = '11';
 
     // Create time slots array (7:30 AM to 6:00 PM)
     const timeSlots = [];
@@ -234,7 +233,8 @@ function findLesson(teacherId, day, time, weekPattern, everyWeekPattern) {
                 return cardDays?.charAt(day) === '1' && weekPattern === '10'; // Odd week
             } else {
                 const cardWeeks = c.getAttribute('weeks');
-                return cardDays?.charAt(day) === '1' && cardWeeks === weekPattern;
+                const isEveryWeek = cardWeeks === everyWeekPattern;
+                return cardDays?.charAt(day) === '1' && (isEveryWeek || cardWeeks === weekPattern);
             }
         });
         
@@ -714,10 +714,7 @@ function updateSelectedTeachersList() {
 }
 
 // Add event listeners for department selection
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('departments1').addEventListener('change', () => updateTeacherSelect(1));
-    document.getElementById('departments2').addEventListener('change', () => updateTeacherSelect(2));
-});
+// Removed unused department select bindings for non-existent elements on compare.html
 
 // Guard flags to prevent duplicate dropdown population
 let xmlDropdownLoading = false;

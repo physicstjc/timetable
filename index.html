@@ -174,8 +174,13 @@
         }
     </style>
     <script src="ical.min.js"></script>
-    <script src="timetable.js" defer></script>
+    <script src="timetable.refactor.js" defer></script>
     <script>
+function toggleInstructions() {
+    const el = document.getElementById('instructions');
+    if (!el) return;
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
 // Load shared header
 fetch('header.html')
     .then(response => response.text())
@@ -318,6 +323,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const selectedTeacherId = teacherSelect.value;
         // If XML not yet loaded, try loading the currently selected option and wait
         if (!window.xmlData) {
             const xmlSelect = document.getElementById('xmlSelect');
@@ -328,6 +334,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!window.xmlData) {
             alert('No timetable XML loaded. Please select a timetable XML first.');
             return;
+        }
+        if (selectedTeacherId && teacherSelect) {
+            teacherSelect.value = selectedTeacherId;
         }
         if (typeof window.createTeacherCalendar !== 'function' || typeof window.downloadICS !== 'function') {
             alert('Calendar generation functions are not available. Please ensure timetable.js is loaded.');
@@ -340,7 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Generate and download ICS
-        const teacherId = teacherSelect.value;
+        const teacherId = selectedTeacherId;
         const startDate = startDateInput.value;
         const endDate = endDateInput.value;
         const startWeekType = weekTypeSelect.value;
