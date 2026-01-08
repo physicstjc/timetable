@@ -138,23 +138,39 @@ const departments = {
   SC: 'Science Chemistry',
   SP: 'Science Physics'
 };
+window.departments = departments;
 
 function populateDepartmentSelect() {
   if (!mappings || !mappings.teachers) return;
   const departmentSelect = document.getElementById('departmentSelect');
   if (!departmentSelect) return;
+  const depMap = window.departments || departments || {
+    AA: 'Arts Aesthetics',
+    AE: 'Arts Economics',
+    AG: 'Arts Geography',
+    AH: 'Arts History',
+    AM: 'Arts Music',
+    E: 'English',
+    M: 'Mathematics',
+    MT: 'Mother Tongue Languages',
+    PE: 'Physical Education',
+    PW: 'Project Work',
+    SB: 'Science Biology',
+    SC: 'Science Chemistry',
+    SP: 'Science Physics'
+  };
   const departmentSet = new Set();
   Object.values(mappings.teachers).forEach(teacher => {
     const match = teacher.short?.match(/\[(.*?)[\]}]/);
-    if (match && departments[match[1]]) departmentSet.add(match[1]);
+    if (match && depMap[match[1]]) departmentSet.add(match[1]);
   });
   departmentSelect.innerHTML = '<option value="">All Departments</option>';
   Array.from(departmentSet)
-    .sort((a, b) => departments[a].localeCompare(departments[b]))
+    .sort((a, b) => depMap[a].localeCompare(depMap[b]))
     .forEach(dept => {
       const option = document.createElement('option');
       option.value = dept;
-      option.textContent = departments[dept];
+      option.textContent = depMap[dept];
       departmentSelect.appendChild(option);
     });
 }
