@@ -1,4 +1,4 @@
-const departments = {
+export const departments = {
     'AA': 'Arts Aesthetics',
     'AE': 'Arts Economics',
     'AG': 'Arts Geography',
