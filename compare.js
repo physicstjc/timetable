@@ -16,7 +16,7 @@ let savedGroups = JSON.parse(localStorage.getItem('teacherGroups') || '{}');
 async function loadDefaultTimetable() {
     try {
         // Try known timetable files inside timetables/ directly (no directory listing)
-        const fallbackFiles = ['SOTY2026.xml', 'term4week6-7.xml'];
+        const fallbackFiles = ['SOTY2026.xml'];
         for (const name of fallbackFiles) {
             try {
                 const res = await fetch(`timetables/${name}`);
@@ -748,7 +748,7 @@ function populateXMLDropdown() {
             if (xmlFiles.length) {
                 xmlFiles.forEach(name => addOption(name));
             } else {
-                ['term4week6-7.xml', 'term4week9-11.xml'].forEach(addOption);
+                ['SOTY2026.xml'].forEach(addOption);
             }
             if (select.options.length) {
                 select.selectedIndex = 0;
@@ -756,7 +756,7 @@ function populateXMLDropdown() {
             }
         })
         .catch(() => {
-            ['term4week6-7.xml', 'term4week9-11.xml'].forEach(addOption);
+            ['SOTY2026.xml'].forEach(addOption);
             if (select.options.length) {
                 select.selectedIndex = 0;
                 loadSelectedXML(select.value);
