@@ -348,12 +348,12 @@ function populateXMLDropdown() {
             if (xmlFiles.length) {
                 xmlFiles.forEach(addOption);
             } else {
-                ['term4week6-7.xml', 'term4week8-11.xml'].forEach(addOption);
+                ['SOTY2026.xml', 'term4week8-11.xml'].forEach(addOption);
             }
         })
         .catch(() => {
             // Fallback: known filenames only from timetables/ (no asctt2012.xml)
-            ['term4week6-7.xml', 'term4week9-11.xml'].forEach(addOption);
+            ['SOTY2026.xml', 'term4week9-11.xml'].forEach(addOption);
         })
         .finally(() => {
             // Select first option and load once
@@ -368,7 +368,7 @@ function populateXMLDropdown() {
         loadSelectedXML(select.value);
     }
     // Secondary fallback block: ensure asctt2012.xml is excluded
-    ['term4week6-7.xml', 'term4week9-11.xml'].forEach(addOption);
+    ['SOTY2026.xml', 'term4week9-11.xml'].forEach(addOption);
     loadSelectedXML(select.value);
 }
 
