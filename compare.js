@@ -277,6 +277,7 @@ function updateWeekType() {
 
 // At the top of compare.js, add:
 import { classIdMapping } from './mappings.js';
+import { departments } from './departments.js';
 
 // Add search functionality
 function setupSearchFunctionality() {
