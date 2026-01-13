@@ -343,7 +343,11 @@ function populateXMLDropdown() {
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
             const links = Array.from(doc.querySelectorAll('a')).map(a => a.getAttribute('href') || '');
-            const xmlFiles = links.filter(href => href.toLowerCase().endsWith('.xml'));
+            let xmlFiles = links.filter(href => href.toLowerCase().endsWith('.xml'));
+            const hasUpper = xmlFiles.some(name => name.split('/').pop() === 'Term1_W3_onwards.xml');
+            if (hasUpper) {
+                xmlFiles = xmlFiles.filter(name => name.split('/').pop().toLowerCase() !== 'term1_w3_onwards.xml');
+            }
 
             if (xmlFiles.length) {
                 const preferred = ['Term1_W3_onwards.xml', 'term1_w3_onwards.xml'];
@@ -356,12 +360,12 @@ function populateXMLDropdown() {
                 });
                 ordered.forEach(addOption);
             } else {
-                ['Term1_W3_onwards.xml', 'term1_w3_onwards.xml', 'SOTY2026.xml'].forEach(addOption);
+                ['Term1_W3_onwards.xml', 'SOTY2026.xml'].forEach(addOption);
             }
         })
         .catch(() => {
             // Fallback: known filenames only from timetables/ (no asctt2012.xml)
-            ['Term1_W3_onwards.xml', 'term1_w3_onwards.xml', 'SOTY2026.xml'].forEach(addOption);
+            ['Term1_W3_onwards.xml', 'SOTY2026.xml'].forEach(addOption);
         })
         .finally(() => {
             // Select preferred option and load once
@@ -386,7 +390,7 @@ function populateXMLDropdown() {
         loadSelectedXML(select.value);
     }
     // Secondary fallback block
-    ['Term1_W3_onwards.xml', 'term1_w3_onwards.xml', 'SOTY2026.xml'].forEach(addOption);
+    ['Term1_W3_onwards.xml', 'SOTY2026.xml'].forEach(addOption);
     select.selectedIndex = 0;
     loadSelectedXML(select.value);
 }
