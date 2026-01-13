@@ -5,6 +5,35 @@ let mappings = null;
 let showOddWeeks = true;   // Show odd week timetables
 let showEvenWeeks = true;  // Show even week timetables
 
+function computeWeekTypeFromDate(dateObj) {
+    const start = new Date(Date.UTC(2026, 0, 5));
+    const toMonday = (x) => {
+        const y = new Date(Date.UTC(x.getUTCFullYear(), x.getUTCMonth(), x.getUTCDate()));
+        const w = y.getUTCDay();
+        const diff = (w + 6) % 7;
+        y.setUTCDate(y.getUTCDate() - diff);
+        return y;
+    };
+    const a = toMonday(dateObj);
+    const s = toMonday(start);
+    const weeks = Math.floor((a - s) / (7 * 86400000));
+    const blocks = [10, 10, 10, 10];
+    const breaks = [1, 4, 1];
+    let t = weeks;
+    for (let i = 0; ; i++) {
+        const b = blocks[i % blocks.length];
+        if (t < b) {
+            const n = (t + 1);
+            return n % 2 === 1 ? 'odd' : 'even';
+        }
+        t -= b;
+        const br = breaks[i % breaks.length];
+        if (t < br) {
+            return 'odd';
+        }
+        t -= br;
+    }
+}
 function setTimetableXML(xmlDoc) {
     // Update internal state
     xmlData = xmlDoc;
@@ -145,8 +174,9 @@ async function loadDefaultXML() {
             const xmlFiles = links.filter(href => href.toLowerCase().endsWith('.xml'));
 
             if (xmlFiles.length > 0) {
-                // Pick the first XML file
-                const path = `timetables/${xmlFiles[0]}`;
+                const preferred = ['Term1_W3_onwards.xml', 'term1_w3_onwards.xml'];
+                const chosen = xmlFiles.find(name => preferred.includes(name)) || xmlFiles[0];
+                const path = `timetables/${chosen}`;
                 const fileRes = await fetch(path);
                 const xmlText = await fileRes.text();
                 const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
@@ -158,7 +188,7 @@ async function loadDefaultXML() {
         }
 
         // Fallback: try known timetable files
-        const fallbackFiles = ['SOTY2026.xml'];
+        const fallbackFiles = ['Term1_W3_onwards.xml', 'term1_w3_onwards.xml', 'SOTY2026.xml'];
         for (const name of fallbackFiles) {
             try {
                 const res = await fetch(`timetables/${name}`);
@@ -679,11 +709,9 @@ window.createTeacherCalendar = function(teacherId, startDate, endDate, startWeek
             eventDate.setDate(firstWeekDate.getDate() + daysToAdd);
 
             const isNextWeek = daysToAdd >= (7 - startDayOfWeek);
-            const shouldStartNextWeek = 
-                (startWeekType === 'even' && group.weeks === '10' && !isNextWeek) || 
-                (startWeekType === 'odd' && group.weeks === '01' && !isNextWeek) ||
-                (startWeekType === 'even' && group.weeks === '01' && isNextWeek) ||
-                (startWeekType === 'odd' && group.weeks === '10' && isNextWeek);
+            const computedType = computeWeekTypeFromDate(eventDate);
+            const targetType = group.weeks === '11' ? 'every' : (group.weeks === '10' ? 'odd' : 'even');
+            const shouldStartNextWeek = targetType !== 'every' && computedType !== targetType;
 
             // Calculate event times
             const startHour = Math.floor((group.startPeriod - 1) / 2) + 7;

@@ -16,7 +16,7 @@ let savedGroups = JSON.parse(localStorage.getItem('teacherGroups') || '{}');
 async function loadDefaultTimetable() {
     try {
         // Try known timetable files inside timetables/ directly (no directory listing)
-        const fallbackFiles = ['SOTY2026.xml'];
+        const fallbackFiles = ['Term1_W3_onwards.xml', 'SOTY2026.xml'];
         for (const name of fallbackFiles) {
             try {
                 const res = await fetch(`timetables/${name}`);
@@ -144,32 +144,35 @@ function updateComparison() {
         }
     }
 
-    // Generate table
-    const table = document.createElement('table');
-    
-    // Create header row
-    const headerRow = table.insertRow();
-    const timeHeader = headerRow.insertCell();
+    // Target existing table
+    const comparisonTable = document.getElementById('comparisonTable');
+    const thead = comparisonTable.querySelector('thead');
+    const tbody = comparisonTable.querySelector('tbody');
+    // Build header
+    thead.innerHTML = '';
+    const headerRow = document.createElement('tr');
+    const timeHeader = document.createElement('th');
     timeHeader.textContent = 'Time';
     timeHeader.className = 'time-cell';
-    
+    headerRow.appendChild(timeHeader);
     selectedTeachers.forEach(teacherId => {
-        const teacher = mappings.teachers[teacherId];
-        const cell = headerRow.insertCell();
-        cell.textContent = teacher.name;
+        const th = document.createElement('th');
+        th.textContent = mappings.teachers[teacherId]?.name || 'Unknown';
+        headerRow.appendChild(th);
     });
+    thead.appendChild(headerRow);
 
-    // Create time slot rows
+    // Build body
+    tbody.innerHTML = '';
     timeSlots.forEach(time => {
-        const row = table.insertRow();
-        const timeCell = row.insertCell();
+        const row = document.createElement('tr');
+        const timeCell = document.createElement('td');
         timeCell.textContent = time;
         timeCell.className = 'time-cell';
-
+        row.appendChild(timeCell);
         selectedTeachers.forEach(teacherId => {
-            const cell = row.insertCell();
+            const cell = document.createElement('td');
             const lesson = findLesson(teacherId, selectedDay, time, weekPattern, everyWeekPattern);
-            
             if (lesson) {
                 cell.className = 'lesson-slot';
                 cell.innerHTML = `
@@ -184,12 +187,10 @@ function updateComparison() {
                 cell.className = 'free-slot';
                 cell.textContent = 'Free';
             }
+            row.appendChild(cell);
         });
+        tbody.appendChild(row);
     });
-
-    const comparisonTable = document.getElementById('comparisonTable');
-    comparisonTable.innerHTML = '';
-    comparisonTable.appendChild(table);
 }
 
 function findLesson(teacherId, day, time, weekPattern, everyWeekPattern) {
@@ -525,6 +526,41 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     daySelect.addEventListener('change', updateComparison);
     document.getElementById('weekType').addEventListener('change', updateComparison);
+    const weekTypeSel = document.getElementById('weekType');
+    if (weekTypeSel) {
+        const d = new Date();
+        const start = new Date(Date.UTC(2026, 0, 5));
+        const toMonday = (x) => {
+            const y = new Date(Date.UTC(x.getUTCFullYear(), x.getUTCMonth(), x.getUTCDate()));
+            const w = y.getUTCDay();
+            const diff = (w + 6) % 7;
+            y.setUTCDate(y.getUTCDate() - diff);
+            return y;
+        };
+        const a = toMonday(d);
+        const s = toMonday(start);
+        const weeks = Math.floor((a - s) / (7 * 86400000));
+        const blocks = [10, 10, 10, 10];
+        const breaks = [1, 4, 1];
+        let t = weeks;
+        let type = 'odd';
+        for (let i = 0; ; i++) {
+            const b = blocks[i % blocks.length];
+            if (t < b) {
+                const n = (t + 1);
+                type = n % 2 === 1 ? 'odd' : 'even';
+                break;
+            }
+            t -= b;
+            const br = breaks[i % breaks.length];
+            if (t < br) {
+                type = 'odd';
+                break;
+            }
+            t -= br;
+        }
+        weekTypeSel.value = type;
+    }
 
     const deptSelect = document.getElementById('departmentSelect');
     if (deptSelect) {
@@ -536,6 +572,25 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     setupSearchFunctionality();
     setupGroupManagement();
+    if (mappings && Object.keys(mappings.teachers || {}).length) {
+        updateComparison();
+    }
+    const relocate = () => {
+        const filterSection = document.getElementById('filterSection');
+        const teacherSelect = document.querySelector('.teacher-select');
+        const search = document.querySelector('.search-container');
+        const list = document.getElementById('teacherCheckboxes');
+        if (!filterSection || !teacherSelect || !search || !list) return;
+        if (window.innerWidth <= 768) {
+            if (!filterSection.contains(search)) filterSection.appendChild(search);
+            if (!filterSection.contains(list)) filterSection.appendChild(list);
+        } else {
+            if (!teacherSelect.contains(search)) teacherSelect.appendChild(search);
+            if (!teacherSelect.contains(list)) teacherSelect.appendChild(list);
+        }
+    };
+    relocate();
+    window.addEventListener('resize', relocate);
 });
 
 // Modify the updateTeacherCheckboxes function
@@ -730,9 +785,10 @@ function populateXMLDropdown() {
 
     select.innerHTML = '';
     const addOption = (name) => {
+        const fileName = name.split('/').pop();
         const option = document.createElement('option');
-        option.value = `timetables/${name}`;
-        option.textContent = name;
+        option.value = `timetables/${fileName}`;
+        option.textContent = fileName;
         select.appendChild(option);
     };
 
@@ -744,19 +800,37 @@ function populateXMLDropdown() {
             const links = Array.from(doc.querySelectorAll('a')).map(a => a.getAttribute('href') || '');
             const xmlFiles = links.filter(href => href.toLowerCase().endsWith('.xml'));
             if (xmlFiles.length) {
-                xmlFiles.forEach(name => addOption(name));
+                const preferred = ['Term1_W3_onwards.xml', 'term1_w3_onwards.xml'];
+                const ordered = [...xmlFiles].sort((a, b) => {
+                    const aPref = preferred.includes(a);
+                    const bPref = preferred.includes(b);
+                    if (aPref && !bPref) return -1;
+                    if (!aPref && bPref) return 1;
+                    return a.localeCompare(b);
+                });
+                ordered.forEach(name => addOption(name));
             } else {
-                ['SOTY2026.xml'].forEach(addOption);
+                ['Term1_W3_onwards.xml', 'term1_w3_onwards.xml', 'SOTY2026.xml'].forEach(addOption);
             }
             if (select.options.length) {
-                select.selectedIndex = 0;
+                const preferred = ['timetables/Term1_W3_onwards.xml', 'timetables/term1_w3_onwards.xml'];
+                let idx = -1;
+                for (let i = 0; i < select.options.length; i++) {
+                    if (preferred.includes(select.options[i].value)) { idx = i; break; }
+                }
+                select.selectedIndex = idx >= 0 ? idx : 0;
                 loadSelectedXML(select.value);
             }
         })
         .catch(() => {
-            ['SOTY2026.xml'].forEach(addOption);
+            ['Term1_W3_onwards.xml', 'term1_w3_onwards.xml', 'SOTY2026.xml'].forEach(addOption);
             if (select.options.length) {
-                select.selectedIndex = 0;
+                const preferred = ['timetables/Term1_W3_onwards.xml', 'timetables/term1_w3_onwards.xml'];
+                let idx = -1;
+                for (let i = 0; i < select.options.length; i++) {
+                    if (preferred.includes(select.options[i].value)) { idx = i; break; }
+                }
+                select.selectedIndex = idx >= 0 ? idx : 0;
                 loadSelectedXML(select.value);
             }
         })

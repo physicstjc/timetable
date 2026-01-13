@@ -24,6 +24,9 @@ function setTimetableXML(xmlDoc) {
     const tablesContainer = document.getElementById('timetableTables');
     if (tablesContainer && !teacherSelect.value) tablesContainer.innerHTML = '';
     teacherSelect.onchange = (e) => updatePreview(e.target.value);
+    if (teacherSelect.value) {
+      updatePreview(teacherSelect.value);
+    }
   }
 }
 window.setTimetableXML = setTimetableXML;
@@ -94,7 +97,7 @@ async function loadDefaultXML() {
         return xmlDoc;
       }
     }
-    const fallbackFiles = ['SOTY2026.xml'];
+    const fallbackFiles = ['Term1_W3_onwards.xml', 'term1_w3_onwards.xml', 'SOTY2026.xml'];
     for (const name of fallbackFiles) {
       try {
         const res = await fetch(`timetables/${name}`);

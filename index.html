@@ -85,8 +85,8 @@
                     <div class="form-group">
                         <label for="weekType">Starting Week Type:</label>
                         <select id="weekType" class="select-input">
-                            <option value="even">Even Week</option>
                             <option value="odd">Odd Week</option>
+                            <option value="even">Even Week</option>
                         </select>
                     </div>
                 </div>
@@ -173,6 +173,46 @@
             color: #333;
         }
     </style>
+    <style>
+        .timetable-container {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+            overflow-x: auto;
+        }
+        .week-table {
+            flex: 1 1 0;
+            min-width: 320px;
+            display: block;
+            overflow-x: auto;
+        }
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        .preview-table th, .preview-table td {
+            padding: 10px 8px;
+            font-size: 14px;
+        }
+        .week-header {
+            font-size: 16px;
+            margin: 8px 0;
+        }
+        @media (max-width: 1024px) {
+            .preview-table th, .preview-table td { font-size: 13px; padding: 9px 7px; }
+            .week-header { font-size: 15px; }
+        }
+        @media (max-width: 768px) {
+            .timetable-container { flex-direction: column; }
+            .preview-table th, .preview-table td { font-size: 12px; padding: 8px 6px; }
+            .week-header { font-size: 14px; }
+        }
+        @media (max-width: 480px) {
+            .preview-table th, .preview-table td { font-size: 11px; padding: 7px 5px; }
+            .week-header { font-size: 13px; }
+        }
+    </style>
     <script src="ical.min.js"></script>
     <script src="timetable.refactor.js" defer></script>
     <script>
@@ -244,9 +284,17 @@ async function populateXMLDropdown() {
             .map(a => a.getAttribute('href') || '')
             .filter(href => href.toLowerCase().endsWith('.xml'));
 
-        // Build options
+        // Build options, preferring Term1_W3_onwards.xml first
         select.innerHTML = '';
-        xmlFiles.forEach(name => {
+        const preferred = ['Term1_W3_onwards.xml', 'term1_w3_onwards.xml'];
+        const orderedFiles = [...xmlFiles].sort((a, b) => {
+            const aPref = preferred.includes(a);
+            const bPref = preferred.includes(b);
+            if (aPref && !bPref) return -1;
+            if (!aPref && bPref) return 1;
+            return a.localeCompare(b);
+        });
+        orderedFiles.forEach(name => {
             const option = document.createElement('option');
             option.value = `timetables/${name}`;
             option.textContent = name;
@@ -255,7 +303,7 @@ async function populateXMLDropdown() {
 
         // Fallback if no listing available
         if (select.options.length === 0) {
-            ['SOTY2026.xml'].forEach(name => {
+            ['Term1_W3_onwards.xml', 'term1_w3_onwards.xml', 'SOTY2026.xml'].forEach(name => {
                 const option = document.createElement('option');
                 option.value = `timetables/${name}`;
                 option.textContent = name;
@@ -265,13 +313,20 @@ async function populateXMLDropdown() {
 
         // Auto-load first item if none selected
         if (!select.value && select.options.length > 0) {
-            select.selectedIndex = 0;
+            const preferred = ['timetables/Term1_W3_onwards.xml', 'timetables/term1_w3_onwards.xml'];
+            let idx = -1;
+            for (let i = 0; i < select.options.length; i++) {
+                if (preferred.includes(select.options[i].value)) { idx = i; break; }
+            }
+            select.selectedIndex = idx >= 0 ? idx : 0;
             loadSelectedXML(select.value);
         }
     } catch (e) {
         console.error('Failed to list timetables directory:', e);
         // Fallback: use known filenames only from timetables/ (no asctt2012.xml)
         const files = [
+            { name: 'Term1_W3_onwards.xml', path: 'timetables/Term1_W3_onwards.xml' },
+            { name: 'term1_w3_onwards.xml', path: 'timetables/term1_w3_onwards.xml' },
             { name: 'SOTY2026.xml', path: 'timetables/SOTY2026.xml' },
         ];
         select.innerHTML = '';
@@ -282,10 +337,51 @@ async function populateXMLDropdown() {
             select.appendChild(option);
         });
         if (select.options.length > 0) {
-            select.selectedIndex = 0;
+            const preferred = ['timetables/Term1_W3_onwards.xml', 'timetables/term1_w3_onwards.xml'];
+            let idx = -1;
+            for (let i = 0; i < select.options.length; i++) {
+                if (preferred.includes(select.options[i].value)) { idx = i; break; }
+            }
+            select.selectedIndex = idx >= 0 ? idx : 0;
             loadSelectedXML(select.value);
         }
     }
+}
+
+function computeWeekTypeFromDate(dateObj) {
+    if (!(dateObj instanceof Date) || isNaN(dateObj)) return 'odd';
+    const start = new Date(Date.UTC(2026, 0, 5));
+    const toMonday = (x) => {
+        if (!(x instanceof Date) || isNaN(x)) return null;
+        const y = new Date(Date.UTC(x.getUTCFullYear(), x.getUTCMonth(), x.getUTCDate()));
+        const w = y.getUTCDay();
+        const diff = (w + 6) % 7;
+        y.setUTCDate(y.getUTCDate() - diff);
+        return y;
+    };
+    const a = toMonday(dateObj);
+    const s = toMonday(start);
+    if (!a || !s) return 'odd';
+    let weeks = Math.floor((a - s) / (7 * 86400000));
+    if (!isFinite(weeks)) return 'odd';
+    if (weeks < 0) return 'odd';
+    const blocks = [10, 10, 10, 10];
+    const breaks = [1, 4, 1];
+    let t = weeks;
+    for (let i = 0; i < 100; i++) {
+        const b = blocks[i % blocks.length];
+        if (t < b) {
+            const n = (t + 1);
+            return n % 2 === 1 ? 'odd' : 'even';
+        }
+        t -= b;
+        const br = breaks[i % breaks.length];
+        if (t < br) {
+            return 'odd';
+        }
+        t -= br;
+    }
+    return 'odd';
 }
 
 // Initialize XML dropdown and hook change events
@@ -297,6 +393,26 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     populateXMLDropdown();
+    const weekTypeSelect = document.getElementById('weekType');
+    const startDateInput = document.getElementById('startDate');
+    if (weekTypeSelect && startDateInput) {
+        const initVal = startDateInput.value;
+        if (initVal) {
+            const d = new Date(initVal + 'T00:00:00');
+            weekTypeSelect.value = computeWeekTypeFromDate(d);
+        }
+        const parseDateInput = (v) => {
+            const parts = (v || '').split('-').map(Number);
+            if (parts.length !== 3 || parts.some(isNaN)) return null;
+            return new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+        };
+        startDateInput.addEventListener('change', () => {
+            const v = startDateInput.value;
+            if (!v) return;
+            const d = parseDateInput(v);
+            weekTypeSelect.value = computeWeekTypeFromDate(d || new Date());
+        });
+    }
 });
     async function processXML() {
         const teacherSelect = document.getElementById('teacherSelect');

@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Timetable Comparison</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -13,6 +14,14 @@
             margin: 0;
             padding: 0; /* Changed from padding: 20px */
             background-color: #f5f7fa;
+        }
+        .filter-section {
+            margin-top: 12px;
+        }
+        @media (max-width: 768px) {
+            .filter-section {
+                display: block;
+            }
         }
         .container {
             max-width: 1400px;
@@ -139,17 +148,20 @@
         }
         .selected-teachers {
             display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
+            flex-direction: column;
+            flex-wrap: nowrap;
+            gap: 6px;
             margin: 10px 0;
+            align-items: flex-start;
         }
         .teacher-tag {
             background: #e9ecef;
-            padding: 5px 10px;
+            padding: 4px 8px;
             border-radius: 15px;
-            display: flex;
+            display: inline-flex;
             align-items: center;
-            gap: 5px;
+            gap: 6px;
+            font-size: 12px;
         }
         .remove-teacher {
             cursor: pointer;
@@ -224,10 +236,11 @@
         /* Update selected-teachers container to properly align the button */
         .selected-teachers {
             display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
+            flex-direction: column;
+            flex-wrap: nowrap;
+            gap: 6px;
             margin: 10px 0;
-            align-items: center;
+            align-items: flex-start;
         }
         .back-link {
             text-align: center;
@@ -350,6 +363,87 @@
             margin-bottom: 8px;
             color: #495057;
         }
+        @media (max-width: 1024px) {
+            .container {
+                padding: 12px;
+            }
+            .controls {
+                padding: 14px;
+            }
+            th, td {
+                padding: 10px 6px;
+                min-width: 80px;
+                font-size: 14px;
+            }
+            .lesson-content {
+                font-size: 14px;
+            }
+        }
+        @media (max-width: 768px) {
+            .teacher-select {
+                flex-direction: column;
+                gap: 12px;
+            }
+            .search-input {
+                width: 100%;
+            }
+            .controls {
+                padding: 12px;
+            }
+            .group-management {
+                padding: 12px;
+            }
+            th, td {
+                padding: 8px 6px;
+                min-width: 72px;
+                font-size: 13px;
+            }
+            .time-cell {
+                min-width: 56px;
+            }
+            .lesson-content {
+                font-size: 13px;
+            }
+            .teacher-checkboxes {
+                max-height: 160px;
+            }
+            .week-toggle, .date-controls {
+                flex-wrap: wrap;
+            }
+        }
+        @media (max-width: 480px) {
+            .container {
+                padding: 8px;
+            }
+            .controls {
+                padding: 10px;
+            }
+            th, td {
+                padding: 6px 4px;
+                min-width: 64px;
+                font-size: 12px;
+            }
+            .time-cell {
+                min-width: 52px;
+            }
+            .lesson-content {
+                font-size: 12px;
+            }
+            .search-input {
+                font-size: 13px;
+            }
+            .group-input, .group-select {
+                min-width: unset;
+                width: 100%;
+            }
+            .group-controls {
+                gap: 8px;
+            }
+            button, .btn-small {
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -380,6 +474,7 @@
                 <!-- Remove the Apply Filter button -->
             </div>
             <div class="selected-teachers" id="selectedTeachers"></div>
+            <div id="filterSection" class="filter-section"></div>
             
             <div class="group-management">
                 <div class="group-section-title">Teacher Groups</div>
@@ -406,8 +501,8 @@
                     </select>
                 </label>
                 <select id="weekType" onchange="updateComparison()">
-                    <option value="even">Even Week</option>
                     <option value="odd">Odd Week</option>
+                    <option value="even">Even Week</option>
                 </select>
                 <span id="weekNumberDisplay"></span>
                 <!-- Remove the Compare Timetables button -->
