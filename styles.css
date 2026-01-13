@@ -57,11 +57,14 @@ body {
 
 .week-table {
     flex: 1;
-    min-width: 300px;
+    min-width: 260px;
     background: white;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    margin-bottom: 1rem;
 }
 
 .week-header {
@@ -81,6 +84,7 @@ body {
 .preview-table td {
     padding: 0.75rem 1rem;
     border: 1px solid #e0e0e0;
+    word-break: break-word;
 }
 
 .preview-table th {
@@ -112,6 +116,22 @@ body {
 
 /* Mobile-specific adjustments */
 @media (max-width: 768px) {
+    .timetable-container {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    .week-table {
+        min-width: 100%;
+        width: 100%;
+    }
+    #previewSection {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    #timetableTables {
+        width: 100%;
+    }
     h1 {
         font-size: 1.5rem;
     }
@@ -270,6 +290,7 @@ h2 {
 .preview-table td {
     padding: 0.75rem;
     border-bottom: 1px solid var(--border-color);
+    font-size: 0.85rem;
 }
 
 .preview-table th {
@@ -279,6 +300,16 @@ h2 {
 
 .preview-table tr:hover {
     background: var(--background);
+}
+
+@media (max-width: 1024px) {
+    .preview-table th, .preview-table td { font-size: 0.8rem; }
+}
+@media (max-width: 768px) {
+    .preview-table th, .preview-table td { font-size: 0.78rem; }
+}
+@media (max-width: 480px) {
+    .preview-table th, .preview-table td { font-size: 0.72rem; }
 }
 
 .actions {
@@ -430,6 +461,15 @@ h2 {
     flex-wrap: wrap;
     gap: 8px;
     align-items: center;
+}
+
+/* Ensure index preview tables are always visible and scrollable */
+#timetableTables {
+    display: block;
+    margin-top: 1rem;
+    min-height: 120px;
+    position: relative;
+    z-index: 1;
 }
 
 .remove-all-btn {
