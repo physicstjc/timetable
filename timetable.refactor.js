@@ -265,7 +265,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const teacherSelect = document.getElementById('teacherSelect');
   if (teacherSelect) {
     updateTeacherSelect();
-    teacherSelect.selectedIndex = 0;
+    const firstIdx = Array.from(teacherSelect.options).findIndex(o => o.value);
+    teacherSelect.selectedIndex = firstIdx >= 0 ? firstIdx : 0;
     const tablesContainer = document.getElementById('timetableTables');
     if (tablesContainer) tablesContainer.innerHTML = '';
     teacherSelect.addEventListener('change', (e) => updatePreview(e.target.value));
