@@ -247,7 +247,7 @@ async function populateXMLDropdown() {
 
         // Build options, preferring Term1_W3_onwards.xml first
         select.innerHTML = '';
-        const preferred = ['Term1_W3_onwards.xml', 'term1_w3_onwards.xml'];
+        const preferred = ['Term1_W3_onwards.xml'];
         const orderedFiles = [...xmlFiles].sort((a, b) => {
             const aPref = preferred.includes(a);
             const bPref = preferred.includes(b);
@@ -264,7 +264,7 @@ async function populateXMLDropdown() {
 
         // Fallback if no listing available
         if (select.options.length === 0) {
-            ['Term1_W3_onwards.xml', 'term1_w3_onwards.xml', 'SOTY2026.xml'].forEach(name => {
+            ['Term1_W3_onwards.xml', 'SOTY2026.xml'].forEach(name => {
                 const option = document.createElement('option');
                 option.value = `timetables/${name}`;
                 option.textContent = name;
@@ -274,7 +274,7 @@ async function populateXMLDropdown() {
 
         // Auto-load first item if none selected
         if (!select.value && select.options.length > 0) {
-            const preferred = ['timetables/Term1_W3_onwards.xml', 'timetables/term1_w3_onwards.xml'];
+            const preferred = ['timetables/Term1_W3_onwards.xml'];
             let idx = -1;
             for (let i = 0; i < select.options.length; i++) {
                 if (preferred.includes(select.options[i].value)) { idx = i; break; }
@@ -287,7 +287,6 @@ async function populateXMLDropdown() {
         // Fallback: use known filenames only from timetables/ (no asctt2012.xml)
         const files = [
             { name: 'Term1_W3_onwards.xml', path: 'timetables/Term1_W3_onwards.xml' },
-            { name: 'term1_w3_onwards.xml', path: 'timetables/term1_w3_onwards.xml' },
             { name: 'SOTY2026.xml', path: 'timetables/SOTY2026.xml' },
         ];
         select.innerHTML = '';
@@ -298,7 +297,7 @@ async function populateXMLDropdown() {
             select.appendChild(option);
         });
         if (select.options.length > 0) {
-            const preferred = ['timetables/Term1_W3_onwards.xml', 'timetables/term1_w3_onwards.xml'];
+            const preferred = ['timetables/Term1_W3_onwards.xml'];
             let idx = -1;
             for (let i = 0; i < select.options.length; i++) {
                 if (preferred.includes(select.options[i].value)) { idx = i; break; }

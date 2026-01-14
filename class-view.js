@@ -350,7 +350,7 @@ function populateXMLDropdown() {
             }
 
             if (xmlFiles.length) {
-                const preferred = ['Term1_W3_onwards.xml', 'term1_w3_onwards.xml'];
+                const preferred = ['Term1_W3_onwards.xml'];
                 const ordered = [...xmlFiles].sort((a, b) => {
                     const aPref = preferred.includes(a);
                     const bPref = preferred.includes(b);
@@ -370,7 +370,7 @@ function populateXMLDropdown() {
         .finally(() => {
             // Select preferred option and load once
             if (select.options.length) {
-                const preferred = ['timetables/Term1_W3_onwards.xml', 'timetables/term1_w3_onwards.xml'];
+                const preferred = ['timetables/Term1_W3_onwards.xml'];
                 let idx = -1;
                 for (let i = 0; i < select.options.length; i++) {
                     if (preferred.includes(select.options[i].value)) { idx = i; break; }
@@ -381,7 +381,7 @@ function populateXMLDropdown() {
         });
 
     if (select.options.length) {
-        const preferred = ['timetables/Term1_W3_onwards.xml', 'timetables/term1_w3_onwards.xml'];
+        const preferred = ['timetables/Term1_W3_onwards.xml'];
         let idx = -1;
         for (let i = 0; i < select.options.length; i++) {
             if (preferred.includes(select.options[i].value)) { idx = i; break; }

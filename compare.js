@@ -48,6 +48,9 @@ async function loadDefaultTimetable() {
 async function loadSelectedXML(path) {
     try {
         const response = await fetch(path);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status} when fetching ${path}`);
+        }
         const text = await response.text();
         const parser = new DOMParser();
         const doc = parser.parseFromString(text, 'text/xml');
@@ -797,10 +800,18 @@ function populateXMLDropdown() {
         .then(html => {
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
-            const links = Array.from(doc.querySelectorAll('a')).map(a => a.getAttribute('href') || '');
-            const xmlFiles = links.filter(href => href.toLowerCase().endsWith('.xml'));
+            const links = Array.from(doc.querySelectorAll('a')).map(a => {
+                const raw = a.getAttribute('href') || '';
+                const cleaned = raw.split('?')[0].split('#')[0];
+                return cleaned;
+            });
+            let xmlFiles = links.filter(href => href.toLowerCase().endsWith('.xml'));
+            const hasUpper = xmlFiles.some(name => name.split('/').pop() === 'Term1_W3_onwards.xml');
+            if (hasUpper) {
+                xmlFiles = xmlFiles.filter(name => name.split('/').pop().toLowerCase() !== 'term1_w3_onwards.xml');
+            }
             if (xmlFiles.length) {
-                const preferred = ['Term1_W3_onwards.xml', 'term1_w3_onwards.xml'];
+                const preferred = ['Term1_W3_onwards.xml'];
                 const ordered = [...xmlFiles].sort((a, b) => {
                     const aPref = preferred.includes(a);
                     const bPref = preferred.includes(b);
@@ -810,10 +821,10 @@ function populateXMLDropdown() {
                 });
                 ordered.forEach(name => addOption(name));
             } else {
-                ['Term1_W3_onwards.xml', 'term1_w3_onwards.xml', 'SOTY2026.xml'].forEach(addOption);
+                ['Term1_W3_onwards.xml', 'SOTY2026.xml'].forEach(addOption);
             }
             if (select.options.length) {
-                const preferred = ['timetables/Term1_W3_onwards.xml', 'timetables/term1_w3_onwards.xml'];
+                const preferred = ['timetables/Term1_W3_onwards.xml'];
                 let idx = -1;
                 for (let i = 0; i < select.options.length; i++) {
                     if (preferred.includes(select.options[i].value)) { idx = i; break; }
@@ -823,9 +834,9 @@ function populateXMLDropdown() {
             }
         })
         .catch(() => {
-            ['Term1_W3_onwards.xml', 'term1_w3_onwards.xml', 'SOTY2026.xml'].forEach(addOption);
+            ['Term1_W3_onwards.xml', 'SOTY2026.xml'].forEach(addOption);
             if (select.options.length) {
-                const preferred = ['timetables/Term1_W3_onwards.xml', 'timetables/term1_w3_onwards.xml'];
+                const preferred = ['timetables/Term1_W3_onwards.xml'];
                 let idx = -1;
                 for (let i = 0; i < select.options.length; i++) {
                     if (preferred.includes(select.options[i].value)) { idx = i; break; }

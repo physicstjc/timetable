@@ -174,7 +174,7 @@ async function loadDefaultXML() {
             const xmlFiles = links.filter(href => href.toLowerCase().endsWith('.xml'));
 
             if (xmlFiles.length > 0) {
-                const preferred = ['Term1_W3_onwards.xml', 'term1_w3_onwards.xml'];
+                const preferred = ['Term1_W3_onwards.xml'];
                 const chosen = xmlFiles.find(name => preferred.includes(name)) || xmlFiles[0];
                 const path = `timetables/${chosen}`;
                 const fileRes = await fetch(path);
@@ -188,7 +188,7 @@ async function loadDefaultXML() {
         }
 
         // Fallback: try known timetable files
-        const fallbackFiles = ['Term1_W3_onwards.xml', 'term1_w3_onwards.xml', 'SOTY2026.xml'];
+        const fallbackFiles = ['Term1_W3_onwards.xml', 'SOTY2026.xml'];
         for (const name of fallbackFiles) {
             try {
                 const res = await fetch(`timetables/${name}`);
