@@ -344,13 +344,13 @@ function populateXMLDropdown() {
             const doc = parser.parseFromString(html, 'text/html');
             const links = Array.from(doc.querySelectorAll('a')).map(a => a.getAttribute('href') || '');
             let xmlFiles = links.filter(href => href.toLowerCase().endsWith('.xml'));
-            const hasUpper = xmlFiles.some(name => name.split('/').pop() === 'Term1_W3_onwards.xml');
+            const hasUpper = xmlFiles.some(name => name.split('/').pop() === 'Term1_W8_onwards.xml');
             if (hasUpper) {
-                xmlFiles = xmlFiles.filter(name => name.split('/').pop().toLowerCase() !== 'term1_w3_onwards.xml');
+                xmlFiles = xmlFiles.filter(name => name.split('/').pop().toLowerCase() !== 'term1_w8_onwards.xml');
             }
 
             if (xmlFiles.length) {
-                const preferred = ['Term1_W3_onwards.xml'];
+                const preferred = ['Term1_W8_onwards.xml'];
                 const ordered = [...xmlFiles].sort((a, b) => {
                     const aPref = preferred.includes(a);
                     const bPref = preferred.includes(b);
@@ -360,17 +360,17 @@ function populateXMLDropdown() {
                 });
                 ordered.forEach(addOption);
             } else {
-                ['Term1_W3_onwards.xml', 'SOTY2026.xml'].forEach(addOption);
+                ['Term1_W8_onwards.xml', 'Term1_W3_onwards.xml', 'SOTY2026.xml'].forEach(addOption);
             }
         })
         .catch(() => {
             // Fallback: known filenames only from timetables/ (no asctt2012.xml)
-            ['Term1_W3_onwards.xml', 'SOTY2026.xml'].forEach(addOption);
+            ['Term1_W8_onwards.xml', 'Term1_W3_onwards.xml', 'SOTY2026.xml'].forEach(addOption);
         })
         .finally(() => {
             // Select preferred option and load once
             if (select.options.length) {
-                const preferred = ['timetables/Term1_W3_onwards.xml'];
+                const preferred = ['timetables/Term1_W8_onwards.xml'];
                 let idx = -1;
                 for (let i = 0; i < select.options.length; i++) {
                     if (preferred.includes(select.options[i].value)) { idx = i; break; }
@@ -381,7 +381,7 @@ function populateXMLDropdown() {
         });
 
     if (select.options.length) {
-        const preferred = ['timetables/Term1_W3_onwards.xml'];
+        const preferred = ['timetables/Term1_W8_onwards.xml'];
         let idx = -1;
         for (let i = 0; i < select.options.length; i++) {
             if (preferred.includes(select.options[i].value)) { idx = i; break; }
@@ -390,7 +390,7 @@ function populateXMLDropdown() {
         loadSelectedXML(select.value);
     }
     // Secondary fallback block
-    ['Term1_W3_onwards.xml', 'SOTY2026.xml'].forEach(addOption);
+    ['Term1_W8_onwards.xml', 'Term1_W3_onwards.xml', 'SOTY2026.xml'].forEach(addOption);
     select.selectedIndex = 0;
     loadSelectedXML(select.value);
 }
