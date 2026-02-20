@@ -16,7 +16,7 @@ let savedGroups = JSON.parse(localStorage.getItem('teacherGroups') || '{}');
 async function loadDefaultTimetable() {
     try {
         // Try known timetable files inside timetables/ directly (no directory listing)
-        const fallbackFiles = ['Term1_W3_onwards.xml', 'SOTY2026.xml'];
+        const fallbackFiles = ['Term1_W8_onwards.xml', 'Term1_W3_onwards.xml', 'SOTY2026.xml'];
         for (const name of fallbackFiles) {
             try {
                 const res = await fetch(`timetables/${name}`);
@@ -806,12 +806,12 @@ function populateXMLDropdown() {
                 return cleaned;
             });
             let xmlFiles = links.filter(href => href.toLowerCase().endsWith('.xml'));
-            const hasUpper = xmlFiles.some(name => name.split('/').pop() === 'Term1_W3_onwards.xml');
+            const hasUpper = xmlFiles.some(name => name.split('/').pop() === 'Term1_W8_onwards.xml');
             if (hasUpper) {
-                xmlFiles = xmlFiles.filter(name => name.split('/').pop().toLowerCase() !== 'term1_w3_onwards.xml');
+                xmlFiles = xmlFiles.filter(name => name.split('/').pop().toLowerCase() !== 'term1_w8_onwards.xml');
             }
             if (xmlFiles.length) {
-                const preferred = ['Term1_W3_onwards.xml'];
+                const preferred = ['Term1_W8_onwards.xml'];
                 const ordered = [...xmlFiles].sort((a, b) => {
                     const aPref = preferred.includes(a);
                     const bPref = preferred.includes(b);
@@ -821,10 +821,10 @@ function populateXMLDropdown() {
                 });
                 ordered.forEach(name => addOption(name));
             } else {
-                ['Term1_W3_onwards.xml', 'SOTY2026.xml'].forEach(addOption);
+                ['Term1_W8_onwards.xml', 'Term1_W3_onwards.xml', 'SOTY2026.xml'].forEach(addOption);
             }
             if (select.options.length) {
-                const preferred = ['timetables/Term1_W3_onwards.xml'];
+                const preferred = ['timetables/Term1_W8_onwards.xml'];
                 let idx = -1;
                 for (let i = 0; i < select.options.length; i++) {
                     if (preferred.includes(select.options[i].value)) { idx = i; break; }
@@ -834,9 +834,9 @@ function populateXMLDropdown() {
             }
         })
         .catch(() => {
-            ['Term1_W3_onwards.xml', 'SOTY2026.xml'].forEach(addOption);
+            ['Term1_W8_onwards.xml', 'Term1_W3_onwards.xml', 'SOTY2026.xml'].forEach(addOption);
             if (select.options.length) {
-                const preferred = ['timetables/Term1_W3_onwards.xml'];
+                const preferred = ['timetables/Term1_W8_onwards.xml'];
                 let idx = -1;
                 for (let i = 0; i < select.options.length; i++) {
                     if (preferred.includes(select.options[i].value)) { idx = i; break; }
