@@ -13,36 +13,8 @@ let selectedClassId = null;
 // Load default timetable data
 async function loadDefaultTimetable() {
     try {
-        const response = await fetch('timetables/SOTY2026.xml');
-        const text = await response.text();
-        const parser = new DOMParser();
-        xmlData = parser.parseFromString(text, 'text/xml');
-        
-        // Parse mappings
-        ['teachers', 'subjects', 'classrooms', 'classes', 'periods', 'daysdef'].forEach(type => {
-            let elementSelector;
-            if (type === 'classrooms') {
-                elementSelector = 'classroom';
-            } else if (type === 'classes') {
-                elementSelector = 'class';
-            } else {
-                elementSelector = type.slice(0, -1);
-            }
-            
-            const elements = xmlData.querySelectorAll(elementSelector);
-            elements.forEach(element => {
-                const id = type === 'periods' ? element.getAttribute('period') : element.getAttribute('id');
-                mappings[type === 'classrooms' ? 'rooms' : type][id] = {
-                    id: id,
-                    name: element.getAttribute('name'),
-                    short: element.getAttribute('short'),
-                    ...(type === 'periods' && { 
-                        start: element.getAttribute('starttime'),
-                        end: element.getAttribute('endtime')
-                    })
-                };
-            });
-        });
+        xmlData = await window.TimetableCommon.loadFirstAvailableXML('timetables/');
+        mappings = window.TimetableCommon.buildMappings(xmlData);
 
         // Populate class select
         populateClassSelect();
@@ -256,46 +228,8 @@ async function loadSelectedXML(path) {
     try {
         const response = await fetch(path);
         const text = await response.text();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(text, 'text/xml');
-        if (doc.querySelector('parsererror')) {
-            throw new Error('Invalid XML file');
-        }
-        xmlData = doc;
-
-        // Rebuild mappings from xmlData
-        mappings = {
-            teachers: {},
-            subjects: {},
-            rooms: {},
-            classes: {},
-            periods: {},
-            daysdef: {}
-        };
-
-        ['teachers', 'subjects', 'classrooms', 'classes', 'periods', 'daysdef'].forEach(type => {
-            let elementSelector;
-            if (type === 'classrooms') {
-                elementSelector = 'classroom';
-            } else if (type === 'classes') {
-                elementSelector = 'class';
-            } else {
-                elementSelector = type.slice(0, -1);
-            }
-            const elements = xmlData.querySelectorAll(elementSelector);
-            elements.forEach(element => {
-                const id = type === 'periods' ? element.getAttribute('period') : element.getAttribute('id');
-                mappings[type === 'classrooms' ? 'rooms' : type][id] = {
-                    id: id,
-                    name: element.getAttribute('name'),
-                    short: element.getAttribute('short'),
-                    ...(type === 'periods' && {
-                        start: element.getAttribute('starttime'),
-                        end: element.getAttribute('endtime')
-                    })
-                };
-            });
-        });
+        xmlData = window.TimetableCommon.parseXmlDocument(text);
+        mappings = window.TimetableCommon.buildMappings(xmlData);
 
         // Repopulate classes based on new XML
         populateClassSelect();
@@ -343,15 +277,27 @@ function populateXMLDropdown() {
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
             const links = Array.from(doc.querySelectorAll('a')).map(a => a.getAttribute('href') || '');
-            let xmlFiles = links.filter(href => href.toLowerCase().endsWith('.xml'));
-            const hasUpper = xmlFiles.some(name => name.split('/').pop() === 'Term1_W8_onwards.xml');
-            if (hasUpper) {
-                xmlFiles = xmlFiles.filter(name => name.split('/').pop().toLowerCase() !== 'term1_w8_onwards.xml');
-            }
+            const xmlFiles = links.filter(href => href.toLowerCase().endsWith('.xml'));
 
             if (xmlFiles.length) {
-                const preferred = ['Term1_W8_onwards.xml'];
-                const ordered = [...xmlFiles].sort((a, b) => {
+                const preferred = [window.TimetableCommon.PREFERRED_TIMETABLE_FILE];
+                const byLowerName = new Map();
+
+                xmlFiles.forEach((path) => {
+                    const fileName = path.split('/').pop();
+                    const key = fileName.toLowerCase();
+
+                    if (!byLowerName.has(key)) {
+                        byLowerName.set(key, fileName);
+                        return;
+                    }
+
+                    if (preferred.includes(fileName)) {
+                        byLowerName.set(key, fileName);
+                    }
+                });
+
+                const ordered = Array.from(byLowerName.values()).sort((a, b) => {
                     const aPref = preferred.includes(a);
                     const bPref = preferred.includes(b);
                     if (aPref && !bPref) return -1;
@@ -360,17 +306,17 @@ function populateXMLDropdown() {
                 });
                 ordered.forEach(addOption);
             } else {
-                ['Term1_W8_onwards.xml', 'Term1_W3_onwards.xml', 'SOTY2026.xml'].forEach(addOption);
+                window.TimetableCommon.DEFAULT_TIMETABLE_FILES.forEach(addOption);
             }
         })
         .catch(() => {
             // Fallback: known filenames only from timetables/ (no asctt2012.xml)
-            ['Term1_W8_onwards.xml', 'Term1_W3_onwards.xml', 'SOTY2026.xml'].forEach(addOption);
+            window.TimetableCommon.DEFAULT_TIMETABLE_FILES.forEach(addOption);
         })
         .finally(() => {
             // Select preferred option and load once
             if (select.options.length) {
-                const preferred = ['timetables/Term1_W8_onwards.xml'];
+                const preferred = [`timetables/${window.TimetableCommon.PREFERRED_TIMETABLE_FILE}`];
                 let idx = -1;
                 for (let i = 0; i < select.options.length; i++) {
                     if (preferred.includes(select.options[i].value)) { idx = i; break; }
@@ -379,20 +325,6 @@ function populateXMLDropdown() {
                 loadSelectedXML(select.value);
             }
         });
-
-    if (select.options.length) {
-        const preferred = ['timetables/Term1_W8_onwards.xml'];
-        let idx = -1;
-        for (let i = 0; i < select.options.length; i++) {
-            if (preferred.includes(select.options[i].value)) { idx = i; break; }
-        }
-        select.selectedIndex = idx >= 0 ? idx : 0;
-        loadSelectedXML(select.value);
-    }
-    // Secondary fallback block
-    ['Term1_W8_onwards.xml', 'Term1_W3_onwards.xml', 'SOTY2026.xml'].forEach(addOption);
-    select.selectedIndex = 0;
-    loadSelectedXML(select.value);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -406,38 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Fallback if XML dropdown is not present
         loadDefaultTimetable();
     }
-    const d = new Date();
-    const start = new Date(Date.UTC(2026, 0, 5));
-    const toMonday = (x) => {
-        const y = new Date(Date.UTC(x.getUTCFullYear(), x.getUTCMonth(), x.getUTCDate()));
-        const w = y.getUTCDay();
-        const diff = (w + 6) % 7;
-        y.setUTCDate(y.getUTCDate() - diff);
-        return y;
-    };
-    const a = toMonday(d);
-    const s = toMonday(start);
-    const weeks = Math.floor((a - s) / (7 * 86400000));
-    const blocks = [10, 10, 10, 10];
-    const breaks = [1, 4, 1];
-    let t = weeks;
-    let type = 'odd';
-    for (let i = 0; ; i++) {
-        const b = blocks[i % blocks.length];
-        if (t < b) {
-            const n = (t + 1);
-            type = n % 2 === 1 ? 'odd' : 'even';
-            break;
-        }
-        t -= b;
-        const br = breaks[i % breaks.length];
-        if (t < br) {
-            type = 'odd';
-            break;
-        }
-        t -= br;
-    }
-    setWeekType(type);
+    setWeekType(window.TimetableCommon.computeWeekTypeFromDate(new Date()));
 });
 
 // Make functions available globally

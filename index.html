@@ -175,7 +175,8 @@
         }
     </style>
     <script src="ical.min.js"></script>
-    <script src="timetable.refactor.js" defer></script>
+    <script src="timetable-common.js"></script>
+    <script src="timetable.js" defer></script>
     <script>
 function toggleInstructions() {
     const el = document.getElementById('instructions');
@@ -234,6 +235,8 @@ async function loadSelectedXML(path) {
 async function populateXMLDropdown() {
     const select = document.getElementById('xmlSelect');
     if (!select) return;
+    const preferredFile = 'Term1_W8_onwards.xml';
+    const defaultFiles = [preferredFile, 'Term1_W3_onwards.xml', 'SOTY2026.xml'];
 
     try {
         const res = await fetch('timetables/');
@@ -247,7 +250,7 @@ async function populateXMLDropdown() {
 
         // Build options
         select.innerHTML = '';
-        const preferred = ['Term1_W8_onwards.xml'];
+        const preferred = [preferredFile];
         const orderedFiles = [...xmlFiles].sort((a, b) => {
             const aPref = preferred.includes(a);
             const bPref = preferred.includes(b);
@@ -264,7 +267,7 @@ async function populateXMLDropdown() {
 
         // Fallback if no listing available
         if (select.options.length === 0) {
-            ['Term1_W8_onwards.xml', 'Term1_W3_onwards.xml', 'SOTY2026.xml'].forEach(name => {
+            defaultFiles.forEach(name => {
                 const option = document.createElement('option');
                 option.value = `timetables/${name}`;
                 option.textContent = name;
@@ -274,7 +277,7 @@ async function populateXMLDropdown() {
 
         // Auto-load first item if none selected
         if (!select.value && select.options.length > 0) {
-            const preferred = ['timetables/Term1_W8_onwards.xml'];
+            const preferred = [`timetables/${preferredFile}`];
             let idx = -1;
             for (let i = 0; i < select.options.length; i++) {
                 if (preferred.includes(select.options[i].value)) { idx = i; break; }
@@ -286,9 +289,9 @@ async function populateXMLDropdown() {
         console.error('Failed to list timetables directory:', e);
         // Fallback: use known filenames only from timetables/ (no asctt2012.xml)
         const files = [
-            { name: 'Term1_W8_onwards.xml', path: 'timetables/Term1_W8_onwards.xml' },
-            { name: 'Term1_W3_onwards.xml', path: 'timetables/Term1_W3_onwards.xml' },
-            { name: 'SOTY2026.xml', path: 'timetables/SOTY2026.xml' },
+            { name: defaultFiles[0], path: `timetables/${defaultFiles[0]}` },
+            { name: defaultFiles[1], path: `timetables/${defaultFiles[1]}` },
+            { name: defaultFiles[2], path: `timetables/${defaultFiles[2]}` },
         ];
         select.innerHTML = '';
         files.forEach(({ name, path }) => {
@@ -298,7 +301,7 @@ async function populateXMLDropdown() {
             select.appendChild(option);
         });
         if (select.options.length > 0) {
-            const preferred = ['timetables/Term1_W8_onwards.xml'];
+            const preferred = [`timetables/${preferredFile}`];
             let idx = -1;
             for (let i = 0; i < select.options.length; i++) {
                 if (preferred.includes(select.options[i].value)) { idx = i; break; }
