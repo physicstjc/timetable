@@ -85,7 +85,7 @@ async function loadDefaultXML() {
             const xmlFiles = links.filter(href => href.toLowerCase().endsWith('.xml'));
 
             if (xmlFiles.length > 0) {
-                const preferred = ['Term1_W8_onwards.xml'];
+                const preferred = ['Term1_W10.xml'];
                 const chosen = xmlFiles.find(name => preferred.includes(name)) || xmlFiles[0];
                 const path = `timetables/${chosen}`;
                 const fileRes = await fetch(path);
