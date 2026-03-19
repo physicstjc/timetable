@@ -235,8 +235,8 @@ async function loadSelectedXML(path) {
 async function populateXMLDropdown() {
     const select = document.getElementById('xmlSelect');
     if (!select) return;
-    const preferredFile = 'Term1_W8_onwards.xml';
-    const defaultFiles = [preferredFile, 'Term1_W10.xml', 'Term1_W3_onwards.xml', 'SOTY2026.xml'];
+    const preferredFile = window.TimetableCommon.PREFERRED_TIMETABLE_FILE;
+    const defaultFiles = window.TimetableCommon.DEFAULT_TIMETABLE_FILES;
 
     try {
         const res = await fetch('timetables/');

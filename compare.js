@@ -180,19 +180,31 @@ function findLesson(teacherId, day, time, weekPattern, everyWeekPattern) {
         // Check each card for matching week pattern and day
         const card = Array.from(cards).find(c => {
             const cardDays = c.getAttribute('days');
-            
-            // Handle different week patterns
-            if (weeksdefId === '4CEEF5CAAC1CEE35') {
-                return cardDays?.charAt(day) === '1'; // Every week
-            } else if (weeksdefId === 'F20BB99A3CE4D221') {
-                return cardDays?.charAt(day) === '1' && weekPattern === '01'; // Even week
-            } else if (weeksdefId === '1DE69DF37257B010') {
-                return cardDays?.charAt(day) === '1' && weekPattern === '10'; // Odd week
-            } else {
-                const cardWeeks = c.getAttribute('weeks');
-                const isEveryWeek = cardWeeks === everyWeekPattern;
-                return cardDays?.charAt(day) === '1' && (isEveryWeek || cardWeeks === weekPattern);
+            const cardWeeks = c.getAttribute('weeks');
+
+            // If card has its own weeks definition (10, 01, 11), it should take priority
+            let effectiveWeekPattern = null;
+            if (cardWeeks === '10' || cardWeeks === '01' || cardWeeks === '11') {
+                effectiveWeekPattern = cardWeeks;
             }
+
+            // Otherwise fallback to lesson weeksdefId
+            if (!effectiveWeekPattern) {
+                if (weeksdefId === '4CEEF5CAAC1CEE35') effectiveWeekPattern = '11';
+                else if (weeksdefId === 'F20BB99A3CE4D221') effectiveWeekPattern = '01';
+                else if (weeksdefId === '1DE69DF37257B010') effectiveWeekPattern = '10';
+            }
+
+            if (cardDays?.charAt(day) !== '1') return false;
+
+            // If we have an effective pattern, check if it matches the current view
+            if (effectiveWeekPattern) {
+                return (effectiveWeekPattern === '11' || effectiveWeekPattern === weekPattern);
+            }
+
+            // Last resort: standard logic
+            const isEveryWeek = cardWeeks === everyWeekPattern;
+            return isEveryWeek || cardWeeks === weekPattern;
         });
         
         if (card) {

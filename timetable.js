@@ -85,7 +85,7 @@ async function loadDefaultXML() {
             const xmlFiles = links.filter(href => href.toLowerCase().endsWith('.xml'));
 
             if (xmlFiles.length > 0) {
-                const preferred = ['Term1_W8_onwards.xml'];
+                const preferred = [window.TimetableCommon.PREFERRED_TIMETABLE_FILE];
                 const chosen = xmlFiles.find(name => preferred.includes(name)) || xmlFiles[0];
                 const path = `timetables/${chosen}`;
                 const fileRes = await fetch(path);
@@ -401,7 +401,13 @@ function updatePreview(teacherId) {
             } else if (weeksdefId === '1DE69DF37257B010') {
                 weekPatterns = ['10'];
             } else {
-                weekPatterns = [card.getAttribute('weeks')];
+                // If the card has specific weeks (like "10" or "01"), use that instead of the lesson's weeksdef
+                const cardWeeks = card.getAttribute('weeks');
+                if (cardWeeks && (cardWeeks === '10' || cardWeeks === '01' || cardWeeks === '11')) {
+                    weekPatterns = [cardWeeks];
+                } else {
+                    weekPatterns = [card.getAttribute('weeks') || '11'];
+                }
             }
             
             weekPatterns.forEach(weeks => {
@@ -413,6 +419,7 @@ function updatePreview(teacherId) {
                         dayGroups.set(key, {
                             startPeriod: periodId,
                             endPeriod: periodId,
+                            allPeriods: [periodId],
                             weeks,
                             dayIndex,
                             room: roomDisplay,
@@ -421,32 +428,54 @@ function updatePreview(teacherId) {
                         });
                     } else {
                         const group = dayGroups.get(key);
-                        if (periodId === group.endPeriod + 1) {
-                            group.endPeriod = periodId;
-                        }
+                        group.allPeriods.push(periodId);
+                        group.allPeriods.sort((a, b) => a - b);
+                        group.startPeriod = Math.min(...group.allPeriods);
+                        group.endPeriod = Math.max(...group.allPeriods);
                     }
                 }
             });
         });
 
         dayGroups.forEach((group, key) => {
-            const startPeriodInfo = mappings.periods[group.startPeriod];
-            const endPeriodInfo = mappings.periods[group.endPeriod];
-            
-            const weekType = group.weeks === '11' ? 'Every Week' : 
-                           group.weeks === '10' ? 'Odd Week' : 
-                           group.weeks === '01' ? 'Even Week' : 'Every Week';
-            
-            lessonMap.set(key, {
-                day: group.dayIndex,
-                startTime: startPeriodInfo?.start || '07:30',
-                endTime: endPeriodInfo?.end || '08:00',
-                subject: group.subject,
-                className: group.className,
-                room: group.room,
-                weekType: weekType,
-                isOddWeek: weekType === 'Odd Week',
-                startPeriod: group.startPeriod
+            // Check if periods are continuous
+            let lastP = -1;
+            let currentSubGroup = null;
+            const subGroups = [];
+
+            group.allPeriods.forEach(p => {
+                if (currentSubGroup === null || p !== lastP + 1) {
+                    currentSubGroup = {
+                        start: p,
+                        end: p
+                    };
+                    subGroups.push(currentSubGroup);
+                } else {
+                    currentSubGroup.end = p;
+                }
+                lastP = p;
+            });
+
+            subGroups.forEach(sub => {
+                const startPeriodInfo = mappings.periods[sub.start];
+                const endPeriodInfo = mappings.periods[sub.end];
+                
+                const weekType = group.weeks === '11' ? 'Every Week' : 
+                               group.weeks === '10' ? 'Odd Week' : 
+                               group.weeks === '01' ? 'Even Week' : 'Every Week';
+                
+                const finalKey = `${key}-${sub.start}`;
+                lessonMap.set(finalKey, {
+                    day: group.dayIndex,
+                    startTime: startPeriodInfo?.start || '07:30',
+                    endTime: endPeriodInfo?.end || '08:00',
+                    subject: group.subject,
+                    className: group.className,
+                    room: group.room,
+                    weekType: weekType,
+                    isOddWeek: weekType === 'Odd Week',
+                    startPeriod: sub.start
+                });
             });
         });
     });
