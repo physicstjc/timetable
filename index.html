@@ -288,15 +288,10 @@ async function populateXMLDropdown() {
     } catch (e) {
         console.error('Failed to list timetables directory:', e);
         // Fallback: use known filenames only from timetables/ (no asctt2012.xml)
-        const files = [
-            { name: defaultFiles[0], path: `timetables/${defaultFiles[0]}` },
-            { name: defaultFiles[1], path: `timetables/${defaultFiles[1]}` },
-            { name: defaultFiles[2], path: `timetables/${defaultFiles[2]}` },
-        ];
         select.innerHTML = '';
-        files.forEach(({ name, path }) => {
+        defaultFiles.forEach((name) => {
             const option = document.createElement('option');
-            option.value = path;
+            option.value = `timetables/${name}`;
             option.textContent = name;
             select.appendChild(option);
         });
