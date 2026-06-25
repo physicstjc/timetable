@@ -117,22 +117,7 @@ async function loadDefaultXML() {
             }
         }
 
-        // Last resort: root-level asctt2012.xml (if present)
-        try {
-            const res = await fetch('SOTY2026.xml');
-            if (res.ok) {
-                const xmlText = await res.text();
-                const parser = new DOMParser();
-                const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
-                if (!xmlDoc.querySelector('parsererror')) {
-                    return xmlDoc;
-                }
-            }
-        } catch {
-            // ignore and throw below
-        }
-
-        throw new Error('No XML timetable files found in timetables/ or project root');
+        throw new Error('No XML timetable files found in timetables/');
     } catch (error) {
         console.warn('Failed to load default XML:', error);
         return null;

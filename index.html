@@ -287,7 +287,7 @@ async function populateXMLDropdown() {
         }
     } catch (e) {
         console.error('Failed to list timetables directory:', e);
-        // Fallback: use known filenames only from timetables/ (no asctt2012.xml)
+        // Fallback: use known filenames only from timetables/
         select.innerHTML = '';
         defaultFiles.forEach((name) => {
             const option = document.createElement('option');
@@ -308,11 +308,15 @@ async function populateXMLDropdown() {
 }
 
 function computeWeekTypeFromDate(dateObj) {
+    if (window.TimetableCommon && typeof window.TimetableCommon.computeWeekTypeFromDate === 'function') {
+        return window.TimetableCommon.computeWeekTypeFromDate(dateObj);
+    }
+
     if (!(dateObj instanceof Date) || isNaN(dateObj)) return 'odd';
     const start = new Date(Date.UTC(2026, 0, 5));
     const toMonday = (x) => {
         if (!(x instanceof Date) || isNaN(x)) return null;
-        const y = new Date(Date.UTC(x.getUTCFullYear(), x.getUTCMonth(), x.getUTCDate()));
+        const y = new Date(Date.UTC(x.getFullYear(), x.getMonth(), x.getDate()));
         const w = y.getUTCDay();
         const diff = (w + 6) % 7;
         y.setUTCDate(y.getUTCDate() - diff);

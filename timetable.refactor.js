@@ -97,7 +97,7 @@ async function loadDefaultXML() {
         return xmlDoc;
       }
     }
-    const fallbackFiles = ['Term1_W8_onwards.xml', 'Term1_W3_onwards.xml', 'SOTY2026.xml'];
+    const fallbackFiles = window.TimetableCommon.DEFAULT_TIMETABLE_FILES;
     for (const name of fallbackFiles) {
       try {
         const res = await fetch(`timetables/${name}`);
@@ -110,16 +110,7 @@ async function loadDefaultXML() {
         }
       } catch {}
     }
-    try {
-      const res = await fetch('SOTY2026.xml');
-      if (res.ok) {
-        const xmlText = await res.text();
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
-        if (!xmlDoc.querySelector('parsererror')) return xmlDoc;
-      }
-    } catch {}
-    throw new Error('No XML timetable files found in timetables/ or project root');
+    throw new Error('No XML timetable files found in timetables/');
   } catch (error) {
     console.warn('Failed to load default XML:', error);
     return null;

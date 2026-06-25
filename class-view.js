@@ -267,7 +267,7 @@ function populateXMLDropdown() {
         select.appendChild(option);
     };
 
-    // Try listing the timetables directory; fallback to known list (exclude asctt2012.xml)
+    // Try listing the timetables directory; fallback to known list
     fetch('timetables/')
         .then(res => {
             if (!res.ok) throw new Error(`Failed to list timetables/: ${res.status}`);
@@ -310,7 +310,7 @@ function populateXMLDropdown() {
             }
         })
         .catch(() => {
-            // Fallback: known filenames only from timetables/ (no asctt2012.xml)
+            // Fallback: known filenames only from timetables/
             window.TimetableCommon.DEFAULT_TIMETABLE_FILES.forEach(addOption);
         })
         .finally(() => {

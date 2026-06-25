@@ -1,6 +1,6 @@
 (function (global) {
-    const PREFERRED_TIMETABLE_FILE = 'Term2.xml';
-    const DEFAULT_TIMETABLE_FILES = [PREFERRED_TIMETABLE_FILE, 'Term2_W10.xml', 'Term1_W8_onwards.xml', 'Term1_W10.xml', 'Term1_W3_onwards.xml', 'SOTY2026.xml'];
+    const PREFERRED_TIMETABLE_FILE = 'Term3_W1.xml';
+    const DEFAULT_TIMETABLE_FILES = [PREFERRED_TIMETABLE_FILE, 'Term3_W2_onwards.xml'];
 
     function parseXmlDocument(xmlText) {
         const parser = new DOMParser();
@@ -111,7 +111,7 @@
     function computeWeekTypeFromDate(dateObj) {
         const start = new Date(Date.UTC(2026, 0, 5));
         const toMonday = (x) => {
-            const y = new Date(Date.UTC(x.getUTCFullYear(), x.getUTCMonth(), x.getUTCDate()));
+            const y = new Date(Date.UTC(x.getFullYear(), x.getMonth(), x.getDate()));
             const w = y.getUTCDay();
             const diff = (w + 6) % 7;
             y.setUTCDate(y.getUTCDate() - diff);
