@@ -1,6 +1,6 @@
 (function (global) {
-    const PREFERRED_TIMETABLE_FILE = 'Term3_W1.xml';
-    const DEFAULT_TIMETABLE_FILES = [PREFERRED_TIMETABLE_FILE, 'Term3_W2_onwards.xml'];
+    const PREFERRED_TIMETABLE_FILE = 'Term3_W2_onwards.xml';
+    const DEFAULT_TIMETABLE_FILES = [PREFERRED_TIMETABLE_FILE, 'Term3_W1.xml'];
 
     function parseXmlDocument(xmlText) {
         const parser = new DOMParser();
