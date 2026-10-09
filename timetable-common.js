@@ -151,7 +151,69 @@
         return null;
     }
 
+    // Term 4 2026 starts Monday 14 Sep; each file covers an inclusive range of term weeks.
+    const TERM_START = new Date(2026, 8, 14);
+    const TERM_FILES = [
+        { file: 'Term4_W2-4.xml', from: 2, to: 4 },
+        { file: 'Term4_W5.xml', from: 5, to: 5 },
+        { file: 'Term4_W6-7.xml', from: 6, to: 7 }
+    ];
+
+    function toLocalDate(value) {
+        if (value instanceof Date) return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+        const [y, m, d] = String(value).slice(0, 10).split('-').map(Number);
+        return new Date(y, m - 1, d);
+    }
+
+    function formatIso(d) {
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    }
+
+    function getTimetableWeeks(startValue, endValue) {
+        const start = toLocalDate(startValue);
+        const end = toLocalDate(endValue);
+        const monday = new Date(start);
+        monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+        const weeks = [];
+        for (; monday <= end; monday.setDate(monday.getDate() + 1 * 7)) {
+            const termWeek = Math.round((monday - TERM_START) / (7 * 86400000)) + 1;
+            const entry = TERM_FILES.find((f) => termWeek >= f.from && termWeek <= f.to);
+            if (!entry) continue;
+            weeks.push({
+                file: entry.file,
+                label: `Term 4 Week ${termWeek}`,
+                monday: formatIso(monday),
+                weekType: termWeek % 2 === 1 ? 'odd' : 'even'
+            });
+        }
+        return weeks;
+    }
+
+    function getTimetableSegments(startValue, endValue) {
+        const start = toLocalDate(startValue);
+        const end = toLocalDate(endValue);
+        const segments = [];
+        TERM_FILES.forEach((f) => {
+            const fileStart = new Date(TERM_START);
+            fileStart.setDate(fileStart.getDate() + (f.from - 1) * 7);
+            const fileEnd = new Date(TERM_START);
+            fileEnd.setDate(fileEnd.getDate() + f.to * 7 - 1);
+            const s = start > fileStart ? start : fileStart;
+            const e = end < fileEnd ? end : fileEnd;
+            if (s <= e) segments.push({ file: f.file, start: s, end: e });
+        });
+        return segments;
+    }
+
+    function getNoTimetableMessage() {
+        return 'No timetable is available for the selected dates (Term 4 Weeks 2-7 only).';
+    }
+
     global.TimetableCommon = {
+        getTimetableWeeks,
+        getTimetableSegments,
+        getNoTimetableMessage,
         PREFERRED_TIMETABLE_FILE,
         DEFAULT_TIMETABLE_FILES,
         parseXmlDocument,

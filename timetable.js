@@ -262,6 +262,25 @@ function updateTeacherSelect() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Default the range to the current week so the preview has dates to render.
+    const startEl = document.getElementById('startDate');
+    const endEl = document.getElementById('endDate');
+    if (startEl && !startEl.value) {
+        const today = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        const monday = new Date(today);
+        monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+        const friday = new Date(monday);
+        friday.setDate(monday.getDate() + 4);
+        startEl.value = iso(monday);
+        if (endEl && !endEl.value) endEl.value = iso(friday);
+    }
+    [startEl, endEl].forEach(el => el && el.addEventListener('change', () => {
+        const t = document.getElementById('teacherSelect');
+        if (t && t.value) updatePreview(t.value);
+    }));
+
     await previewTimetable();
 
     const deptEl = document.getElementById('departmentSelect');
