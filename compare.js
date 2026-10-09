@@ -10,6 +10,7 @@ let mappings = {
 };
 // Add after the selectedTeachers declaration at the top
 let selectedTeachers = new Set(JSON.parse(localStorage.getItem('selectedTeachers') || '[]'));
+let outOfRange = false;
 let savedGroups = JSON.parse(localStorage.getItem('teacherGroups') || '{}');
 
 // Modify the loadDefaultTimetable function to update the UI after loading
@@ -75,7 +76,7 @@ function getCurrentDayIndex() {
 function updateComparison() {
     const timetableDiv = document.querySelector('.timetable');
     
-    if (selectedTeachers.size === 0) {
+    if (selectedTeachers.size === 0 || outOfRange) {
         timetableDiv.classList.remove('visible');
         return;
     }
@@ -490,7 +491,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         const dayIdx = date.getDay() - 1;
         if (dayIdx >= 0 && dayIdx <= 4) daySelect.value = dayIdx;
         const path = window.TimetableCommon.getTimetablePathForDate(dateInput.value);
-        if (path !== loadedPath) {
+        if (!path) {
+            loadedPath = null;
+            outOfRange = true;
+            updateComparison();
+            alert(window.TimetableCommon.getNoTimetableMessage());
+            return;
+        }
+        outOfRange = false;
+        if (path !== loadedPath) {clampToCoverag
             loadedPath = path;
             await loadSelectedXML(path);
         } else {

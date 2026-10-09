@@ -227,6 +227,7 @@ function findLessonsForClassPeriodDay(classId, periodId, dayIndex) {
 async function loadSelectedXML(path) {
     try {
         const response = await fetch(path);
+        if (!response.ok) throw new Error(`HTTP ${response.status} when fetching ${path}`);
         const text = await response.text();
         xmlData = window.TimetableCommon.parseXmlDocument(text);
         mappings = window.TimetableCommon.buildMappings(xmlData);
@@ -340,6 +341,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         const [y, m, d] = dateInput.value.split('-').map(Number);
         setWeekType(window.TimetableCommon.computeWeekTypeFromDate(new Date(y, m - 1, d)));
         const path = window.TimetableCommon.getTimetablePathForDate(dateInput.value);
+        if (!path) {
+            loadedPath = null;
+            xmlData = null;
+            mappings = window.TimetableCommon.createMappingsTemplate();
+            populateClassSelect();
+            selectedClassId = null;
+            hideClassInfo();clampToCoverag
+            clearTimetable();
+            alert(window.TimetableCommon.getNoTimetableMessage());
+            return;
+        }
         if (path !== loadedPath) {
             loadedPath = path;
             await loadSelectedXML(path);

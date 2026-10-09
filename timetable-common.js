@@ -2,11 +2,11 @@
     const PREFERRED_TIMETABLE_FILE = 'Term4_W5.xml';
     const DEFAULT_TIMETABLE_FILES = [PREFERRED_TIMETABLE_FILE, 'Term4_W6-7.xml'];
 
-    // Each entry applies from its Monday start until the next entry begins. Update each term.
+    // UPDATE HERE when uploading new timetable XMLs: one entry per file, with inclusive start/end dates (YYYY-MM-DD).
+    // Dates outside every entry have no timetable data.
     const TIMETABLE_SCHEDULE = [
-        { start: '2026-09-14', file: 'Term4_W2-4.xml' },
-        { start: '2026-10-12', file: 'Term4_W5.xml' },
-        { start: '2026-10-19', file: 'Term4_W6-7.xml' }
+        { start: '2026-10-12', end: '2026-10-18', file: 'Term4_W5.xml' },
+        { start: '2026-10-19', end: '2026-10-30', file: 'Term4_W6-7.xml' }
     ];
 
     function toIsoDate(date) {
@@ -15,35 +15,45 @@
         return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())}`;
     }
 
-    // Accepts a Date or 'YYYY-MM-DD'; dates outside the schedule use the nearest file.
+    // Accepts a Date or 'YYYY-MM-DD'; returns null when no timetable covers the date.
     function getTimetableFileForDate(date) {
         const iso = toIsoDate(date);
-        let chosen = TIMETABLE_SCHEDULE[0];
-        for (const entry of TIMETABLE_SCHEDULE) {
-            if (entry.start <= iso) chosen = entry;
-        }
-        return chosen.file;
+        const entry = TIMETABLE_SCHEDULE.find((e) => e.start <= iso && iso <= e.end);
+        return entry ? entry.file : null;
     }
 
-    // Splits an inclusive 'YYYY-MM-DD' range into per-file segments.
-    function getTimetableSegments(startIso, endIso) {
-        const addDay = (iso, n) => {
-            const [y, m, d] = iso.split('-').map(Number);
-            return toIsoDate(new Date(y, m - 1, d + n));
+    function getTimetableCoverage() {
+        return {
+            start: TIMETABLE_SCHEDULE[0].start,
+            end: TIMETABLE_SCHEDULE[TIMETABLE_SCHEDULE.length - 1].end
         };
+    }
+
+    function clampToCoverage(date) {
+        const iso = toIsoDate(date);
+        const { start, end } = getTimetableCoverage();
+        return iso < start ? start : iso > end ? end : iso;
+    }
+
+    function getNoTimetableMessage() {
+        const { start, end } = getTimetableCoverage();
+        return `No timetable data for this date. Timetables are available from ${start} to ${end}.`;
+    }
+
+    // Splits an inclusive 'YYYY-MM-DD' range into per-file segments covered by the schedule.
+    function getTimetableSegments(startIso, endIso) {
         const segments = [];
-        TIMETABLE_SCHEDULE.forEach((entry, i) => {
-            const next = TIMETABLE_SCHEDULE[i + 1];
-            const from = i === 0 || entry.start < startIso ? startIso : entry.start;
-            const lastDay = next ? addDay(next.start, -1) : endIso;
-            const to = lastDay < endIso ? lastDay : endIso;
+        TIMETABLE_SCHEDULE.forEach((entry) => {
+            const from = entry.start > startIso ? entry.start : startIso;
+            const to = entry.end < endIso ? entry.end : endIso;
             if (from <= to) segments.push({ file: entry.file, start: from, end: to });
         });
         return segments;
     }
 
     function getTimetablePathForDate(date) {
-        return `timetables/${getTimetableFileForDate(date)}`;
+        const file = getTimetableFileForDate(date);
+        return file ? `timetables/${file}` : null;
     }
 
     function parseXmlDocument(xmlText) {
@@ -174,12 +184,68 @@
                 return n % 2 === 1 ? 'odd' : 'even';
             }
             t -= b;
-            const br = breaks[i % breaks.length];
+            const br = breaks
+        getTimetableCoverage,
+        clampToCoverage,
+        getNoTimetableMessage,[i % breaks.length];
             if (t < br) {
                 return 'odd';
             }
             t -= br;
         }
+    }
+
+    // Label such as 'Term 4 Week 5' for the school week containing the date.
+    function getTermWeekLabel(dateObj) {
+        const toMonday = (x) 
+        getTimetableWeeks,
+        getTermWeekLabel,=> {
+            const y = new Date(Date.UTC(x.getFullYear(), x.getMonth(), x.getDate()));
+            y.setUTCDate(y.getUTCDate() - ((y.getUTCDay() + 6) % 7));
+            return y;
+        };
+        const weeks = Math.floor((toMonday(dateObj) - toMonday(new Date(2026, 0, 5))) / (7 * 86400000));
+        if (weeks < 0) return 'Before Term 1';
+        const blocks = [10, 10, 10, 10];
+        const breaks = [1, 4, 1];
+        let t = weeks;
+        for (let i = 0; ; i++) {
+            const b = blocks[i % blocks.length];
+            if (t < b) return `Term ${(i % blocks.length) + 1} Week ${t + 1}`;
+            t -= b;
+            const br = breaks[i % breaks.length];
+            if (t < br) return 'School Holidays';
+            t -= br;
+        }
+    }
+
+    // One entry per calendar week in the range that has timetable data.
+    function getTimetableWeeks(startIso, endIso) {
+        const parse = (iso) => {
+            const [y, m, d] = iso.split('-').map(Number);
+            return new Date(y, m - 1, d);
+        };
+        const start = parse(startIso);
+        const end = parse(endIso);
+        const monday = new Date(start);
+        monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+        const weeks = [];
+        for (; monday <= end; monday.setDate(monday.getDate() + 7)) {
+            let file = null;
+            for (let k = 0; k < 7 && !file; k++) {
+                const day = new Date(monday);
+                day.setDate(day.getDate() + k);
+                if (day >= start && day <= end) file = getTimetableFileForDate(day);
+            }
+            if (!file) continue;
+            weeks.push({
+                monday: toIsoDate(monday),
+                label: getTermWeekLabel(monday),
+                weekType: computeWeekTypeFromDate(monday),
+                file
+            });
+        }
+        return weeks;
     }
 
     function extractDepartmentCode(shortName) {

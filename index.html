@@ -231,6 +231,7 @@ async function ensureXMLForStartDate() {
     const startDateInput = document.getElementById('startDate');
     if (!startDateInput || !startDateInput.value) return;
     const path = window.TimetableCommon.getTimetablePathForDate(startDateInput.value);
+    if (!path) return;
     if (path === loadedXmlPath && window.xmlData) return;
     const doc = await loadSelectedXML(path);
     if (doc) loadedXmlPath = path;
@@ -281,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const weekTypeSelect = document.getElementById('weekType');
     const startDateInput = document.getElementById('startDate');
     if (startDateInput && !startDateInput.value) {
-        startDateInput.value = window.TimetableCommon.toIsoDate(new Date());
+        startDateInput.value = window.TimetableCommon.clampToCoverage(new Date());
     }
     ensureXMLForStartDate();
     if (weekTypeSelect && startDateInput) {
@@ -343,6 +344,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const selectedTeacherId = teacherSelect.value;
         // Ensure the XML matching the start date is loaded
         await ensureXMLForStartDate();
+        if (!window.TimetableCommon.getTimetableSegments(startDateInput.value, endDateInput.value).length) {
+            alert(window.TimetableCommon.getNoTimetableMessage());
+            return;
+        }
         if (!window.xmlData) {
             alert('No timetable XML loaded for the selected start date.');
             return;

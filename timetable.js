@@ -304,7 +304,7 @@ async function loadPreviewXml(file) {
     return previewXmlCache.get(file);
 }
 
-// Shows an odd/even table pair for every timetable file covering the selected dates.
+// Shows one table per calendar week in the selected date range.
 async function updatePreview(teacherId) {
     const previewSection = document.getElementById('previewSection');
     if (!previewSection) return;
@@ -320,18 +320,18 @@ async function updatePreview(teacherId) {
     const requestId = ++previewRequestId;
     const startIso = document.getElementById('startDate')?.value;
     const endInput = document.getElementById('endDate')?.value;
-    let segments;
-    if (startIso) {
-        const endIso = endInput && endInput >= startIso ? endInput : startIso;
-        segments = window.TimetableCommon.getTimetableSegments(startIso, endIso);
-    } else {
-        segments = [{ file: null }];
+    if (!startIso) return;
+    const endIso = endInput && endInput >= startIso ? endInput : startIso;
+    const weeks = window.TimetableCommon.getTimetableWeeks(startIso, endIso);
+    if (!weeks.length) {
+        tablesContainer.innerHTML = `<p>${window.TimetableCommon.getNoTimetableMessage()}</p>`;
+        return;
     }
 
     const docs = [];
     try {
-        for (const seg of segments) {
-            docs.push(seg.file ? await loadPreviewXml(seg.file) : xmlData);
+        for (const week of weeks) {
+            docs.push(await loadPreviewXml(week.file));
         }
     } catch (err) {
         console.error(err);
@@ -351,33 +351,21 @@ async function updatePreview(teacherId) {
                         </tr>
                     </thead>
                     <tbody></tbody>`;
-    let tablesHTML = '';
-    segments.forEach((seg, i) => {
-        if (seg.file) {
-            tablesHTML += `<h3 class="week-header">${seg.file.replace(/\.xml$/, '')} (${seg.start} to ${seg.end})</h3>`;
-        }
-        tablesHTML += '<div class="timetable-container">';
-        if (showOddWeeks) {
-            tablesHTML += `
+    let tablesHTML = '<div class="timetable-container">';
+    weeks.forEach((week, i) => {
+        tablesHTML += `
             <div class="week-table">
-                <h3 class="week-header">Odd Week</h3>
-                <table id="oddWeekTable-${i}" class="preview-table">${tableHead}</table>
+                <h3 class="week-header">${week.label} (week of ${week.monday})</h3>
+                <table id="weekTable-${i}" class="preview-table">${tableHead}</table>
             </div>`;
-        }
-        if (showEvenWeeks) {
-            tablesHTML += `
-            <div class="week-table">
-                <h3 class="week-header">Even Week</h3>
-                <table id="evenWeekTable-${i}" class="preview-table">${tableHead}</table>
-            </div>`;
-        }
-        tablesHTML += '</div>';
     });
+    tablesHTML += '</div>';
     tablesContainer.innerHTML = tablesHTML;
 
     docs.forEach((doc, i) => {
-        const tbody = (id) => document.getElementById(id)?.getElementsByTagName('tbody')[0] || null;
-        fillPreviewTables(doc, getMappings(doc), teacherId, tbody(`oddWeekTable-${i}`), tbody(`evenWeekTable-${i}`));
+        const tbody = document.getElementById(`weekTable-${i}`).getElementsByTagName('tbody')[0];
+        const isOdd = weeks[i].weekType === 'odd';
+        fillPreviewTables(doc, getMappings(doc), teacherId, isOdd ? tbody : null, isOdd ? null : tbody);
     });
 }
 
