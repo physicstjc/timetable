@@ -2,6 +2,50 @@
     const PREFERRED_TIMETABLE_FILE = 'Term4_W5.xml';
     const DEFAULT_TIMETABLE_FILES = [PREFERRED_TIMETABLE_FILE, 'Term4_W6-7.xml'];
 
+    // Each entry applies from its Monday start until the next entry begins. Update each term.
+    const TIMETABLE_SCHEDULE = [
+        { start: '2026-09-14', file: 'Term4_W2-4.xml' },
+        { start: '2026-10-12', file: 'Term4_W5.xml' },
+        { start: '2026-10-19', file: 'Term4_W6-7.xml' }
+    ];
+
+    function toIsoDate(date) {
+        if (typeof date === 'string') return date.slice(0, 10);
+        const p = (n) => String(n).padStart(2, '0');
+        return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())}`;
+    }
+
+    // Accepts a Date or 'YYYY-MM-DD'; dates outside the schedule use the nearest file.
+    function getTimetableFileForDate(date) {
+        const iso = toIsoDate(date);
+        let chosen = TIMETABLE_SCHEDULE[0];
+        for (const entry of TIMETABLE_SCHEDULE) {
+            if (entry.start <= iso) chosen = entry;
+        }
+        return chosen.file;
+    }
+
+    // Splits an inclusive 'YYYY-MM-DD' range into per-file segments.
+    function getTimetableSegments(startIso, endIso) {
+        const addDay = (iso, n) => {
+            const [y, m, d] = iso.split('-').map(Number);
+            return toIsoDate(new Date(y, m - 1, d + n));
+        };
+        const segments = [];
+        TIMETABLE_SCHEDULE.forEach((entry, i) => {
+            const next = TIMETABLE_SCHEDULE[i + 1];
+            const from = i === 0 || entry.start < startIso ? startIso : entry.start;
+            const lastDay = next ? addDay(next.start, -1) : endIso;
+            const to = lastDay < endIso ? lastDay : endIso;
+            if (from <= to) segments.push({ file: entry.file, start: from, end: to });
+        });
+        return segments;
+    }
+
+    function getTimetablePathForDate(date) {
+        return `timetables/${getTimetableFileForDate(date)}`;
+    }
+
     function parseXmlDocument(xmlText) {
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
@@ -139,7 +183,8 @@
     }
 
     function extractDepartmentCode(shortName) {
-        if (!shortName) return null;
+        if (!shortName) return n
+        getTimetableSegments,ull;
         const m1 = shortName.match(/\[(.*?)\]/);
         if (m1) return m1[1];
         const m2 = shortName.match(/\{(.*?)\}/);
@@ -154,6 +199,10 @@
     global.TimetableCommon = {
         PREFERRED_TIMETABLE_FILE,
         DEFAULT_TIMETABLE_FILES,
+        TIMETABLE_SCHEDULE,
+        getTimetableFileForDate,
+        getTimetablePathForDate,
+        toIsoDate,
         parseXmlDocument,
         loadFirstAvailableXML,
         createMappingsTemplate,

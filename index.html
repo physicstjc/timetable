@@ -58,12 +58,6 @@
                 <h2>Generate Preview</h2>
                 <!-- Inside the form-grid, add the XML dropdown -->
                 <div class="form-grid">
-                    <!-- Add this before the teacher select -->
-                    <div class="form-group">
-                        <label for="xmlSelect">Timetable XML:</label>
-                        <select id="xmlSelect" class="select-input"></select>
-                    </div>
-
                     <!-- Department filter -->
                     <div class="form-group">
                         <label for="departmentSelect">Department:</label>
@@ -231,80 +225,15 @@ async function loadSelectedXML(path) {
     }
 }
 
-// Dynamically populate the XML dropdown by parsing directory listing
-async function populateXMLDropdown() {
-    const select = document.getElementById('xmlSelect');
-    if (!select) return;
-    const preferredFile = window.TimetableCommon.PREFERRED_TIMETABLE_FILE;
-    const defaultFiles = window.TimetableCommon.DEFAULT_TIMETABLE_FILES;
-
-    try {
-        const res = await fetch('timetables/');
-        const html = await res.text();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-        const links = Array.from(doc.querySelectorAll('a'));
-        const xmlFiles = links
-            .map(a => a.getAttribute('href') || '')
-            .filter(href => href.toLowerCase().endsWith('.xml'));
-
-        // Build options
-        select.innerHTML = '';
-        const preferred = [preferredFile];
-        const orderedFiles = [...xmlFiles].sort((a, b) => {
-            const aPref = preferred.includes(a);
-            const bPref = preferred.includes(b);
-            if (aPref && !bPref) return -1;
-            if (!aPref && bPref) return 1;
-            return a.localeCompare(b);
-        });
-        orderedFiles.forEach(name => {
-            const option = document.createElement('option');
-            option.value = `timetables/${name}`;
-            option.textContent = name;
-            select.appendChild(option);
-        });
-
-        // Fallback if no listing available
-        if (select.options.length === 0) {
-            defaultFiles.forEach(name => {
-                const option = document.createElement('option');
-                option.value = `timetables/${name}`;
-                option.textContent = name;
-                select.appendChild(option);
-            });
-        }
-
-        // Auto-load first item if none selected
-        if (!select.value && select.options.length > 0) {
-            const preferred = [`timetables/${preferredFile}`];
-            let idx = -1;
-            for (let i = 0; i < select.options.length; i++) {
-                if (preferred.includes(select.options[i].value)) { idx = i; break; }
-            }
-            select.selectedIndex = idx >= 0 ? idx : 0;
-            loadSelectedXML(select.value);
-        }
-    } catch (e) {
-        console.error('Failed to list timetables directory:', e);
-        // Fallback: use known filenames only from timetables/
-        select.innerHTML = '';
-        defaultFiles.forEach((name) => {
-            const option = document.createElement('option');
-            option.value = `timetables/${name}`;
-            option.textContent = name;
-            select.appendChild(option);
-        });
-        if (select.options.length > 0) {
-            const preferred = [`timetables/${preferredFile}`];
-            let idx = -1;
-            for (let i = 0; i < select.options.length; i++) {
-                if (preferred.includes(select.options[i].value)) { idx = i; break; }
-            }
-            select.selectedIndex = idx >= 0 ? idx : 0;
-            loadSelectedXML(select.value);
-        }
-    }
+// Load the timetable XML that matches the start date (no-op if already loaded)
+let loadedXmlPath = null;
+async function ensureXMLForStartDate() {
+    const startDateInput = document.getElementById('startDate');
+    if (!startDateInput || !startDateInput.value) return;
+    const path = window.TimetableCommon.getTimetablePathForDate(startDateInput.value);
+    if (path === loadedXmlPath && window.xmlData) return;
+    const doc = await loadSelectedXML(path);
+    if (doc) loadedXmlPath = path;
 }
 
 function computeWeekTypeFromDate(dateObj) {
@@ -349,15 +278,12 @@ function computeWeekTypeFromDate(dateObj) {
 
 // Initialize XML dropdown and hook change events
 document.addEventListener('DOMContentLoaded', () => {
-    const xmlSelect = document.getElementById('xmlSelect');
-    if (xmlSelect) {
-        xmlSelect.addEventListener('change', (e) => {
-            loadSelectedXML(e.target.value);
-        });
-    }
-    populateXMLDropdown();
     const weekTypeSelect = document.getElementById('weekType');
     const startDateInput = document.getElementById('startDate');
+    if (startDateInput && !startDateInput.value) {
+        startDateInput.value = window.TimetableCommon.toIsoDate(new Date());
+    }
+    ensureXMLForStartDate();
     if (weekTypeSelect && startDateInput) {
         const initVal = startDateInput.value;
         if (initVal) {
@@ -369,12 +295,24 @@ document.addEventListener('DOMContentLoaded', () => {
             if (parts.length !== 3 || parts.some(isNaN)) return null;
             return new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
         };
+        const refreshPreview = async () => {
+            const teacherSelect = document.getElementById('teacherSelect');
+            const teacherId = teacherSelect && teacherSelect.value;
+            await ensureXMLForStartDate();
+            if (teacherId && teacherSelect.querySelector(`option[value="${teacherId}"]`)) {
+                teacherSelect.value = teacherId;
+                updatePreview(teacherId);
+            }
+        };
         startDateInput.addEventListener('change', () => {
             const v = startDateInput.value;
             if (!v) return;
             const d = parseDateInput(v);
             weekTypeSelect.value = computeWeekTypeFromDate(d || new Date());
+            refreshPreview();
         });
+        const endDateInput = document.getElementById('endDate');
+        if (endDateInput) endDateInput.addEventListener('change', refreshPreview);
     }
 });
     async function processXML() {
@@ -403,15 +341,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const selectedTeacherId = teacherSelect.value;
-        // If XML not yet loaded, try loading the currently selected option and wait
+        // Ensure the XML matching the start date is loaded
+        await ensureXMLForStartDate();
         if (!window.xmlData) {
-            const xmlSelect = document.getElementById('xmlSelect');
-            if (xmlSelect && xmlSelect.value) {
-                await loadSelectedXML(xmlSelect.value);
-            }
-        }
-        if (!window.xmlData) {
-            alert('No timetable XML loaded. Please select a timetable XML first.');
+            alert('No timetable XML loaded for the selected start date.');
             return;
         }
         if (selectedTeacherId && teacherSelect) {
@@ -432,7 +365,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const startDate = startDateInput.value;
         const endDate = endDateInput.value;
         const startWeekType = weekTypeSelect.value;
-        const calendar = window.createTeacherCalendar(teacherId, startDate, endDate, startWeekType);
+        let calendar;
+        try {
+            calendar = await window.createTeacherCalendar(teacherId, startDate, endDate, startWeekType);
+        } catch (err) {
+            console.error(err);
+            alert(`Failed to generate calendar: ${err.message}`);
+            if (progressEl) progressEl.textContent = '';
+            return;
+        }
 
         // Use the teacher short name or ID for filename
         const teacherOption = teacherSelect.selectedOptions[0];

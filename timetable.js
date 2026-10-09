@@ -292,7 +292,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-function updatePreview(teacherId) {
+const previewXmlCache = new Map();
+let previewRequestId = 0;
+
+async function loadPreviewXml(file) {
+    if (!previewXmlCache.has(file)) {
+        const res = await fetch(`timetables/${file}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status} when fetching timetables/${file}`);
+        previewXmlCache.set(file, window.TimetableCommon.parseXmlDocument(await res.text()));
+    }
+    return previewXmlCache.get(file);
+}
+
+// Shows an odd/even table pair for every timetable file covering the selected dates.
+async function updatePreview(teacherId) {
     const previewSection = document.getElementById('previewSection');
     if (!previewSection) return;
 
@@ -304,52 +317,71 @@ function updatePreview(teacherId) {
         previewSection.appendChild(tablesContainer);
     }
 
-    // Build odd/even week tables
-    let tablesHTML = '<div class="timetable-container">';
-    if (showOddWeeks) {
-        tablesHTML += `
+    const requestId = ++previewRequestId;
+    const startIso = document.getElementById('startDate')?.value;
+    const endInput = document.getElementById('endDate')?.value;
+    let segments;
+    if (startIso) {
+        const endIso = endInput && endInput >= startIso ? endInput : startIso;
+        segments = window.TimetableCommon.getTimetableSegments(startIso, endIso);
+    } else {
+        segments = [{ file: null }];
+    }
+
+    const docs = [];
+    try {
+        for (const seg of segments) {
+            docs.push(seg.file ? await loadPreviewXml(seg.file) : xmlData);
+        }
+    } catch (err) {
+        console.error(err);
+        tablesContainer.innerHTML = `<p>Failed to load preview: ${err.message}</p>`;
+        return;
+    }
+    if (requestId !== previewRequestId) return;
+
+    const tableHead = `
+                    <thead>
+                        <tr>
+                            <th>Day</th>
+                            <th>Time</th>
+                            <th>Subject</th>
+                            <th>Room</th>
+                            <th>Week Type</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>`;
+    let tablesHTML = '';
+    segments.forEach((seg, i) => {
+        if (seg.file) {
+            tablesHTML += `<h3 class="week-header">${seg.file.replace(/\.xml$/, '')} (${seg.start} to ${seg.end})</h3>`;
+        }
+        tablesHTML += '<div class="timetable-container">';
+        if (showOddWeeks) {
+            tablesHTML += `
             <div class="week-table">
                 <h3 class="week-header">Odd Week</h3>
-                <table id="oddWeekTable" class="preview-table">
-                    <thead>
-                        <tr>
-                            <th>Day</th>
-                            <th>Time</th>
-                            <th>Subject</th>
-                            <th>Room</th>
-                            <th>Week Type</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
+                <table id="oddWeekTable-${i}" class="preview-table">${tableHead}</table>
             </div>`;
-    }
-    if (showEvenWeeks) {
-        tablesHTML += `
+        }
+        if (showEvenWeeks) {
+            tablesHTML += `
             <div class="week-table">
                 <h3 class="week-header">Even Week</h3>
-                <table id="evenWeekTable" class="preview-table">
-                    <thead>
-                        <tr>
-                            <th>Day</th>
-                            <th>Time</th>
-                            <th>Subject</th>
-                            <th>Room</th>
-                            <th>Week Type</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
+                <table id="evenWeekTable-${i}" class="preview-table">${tableHead}</table>
             </div>`;
-    }
-    tablesHTML += '</div>';
-
-    // Write into the container
+        }
+        tablesHTML += '</div>';
+    });
     tablesContainer.innerHTML = tablesHTML;
 
-    // Continue with filling rows...
-    const oddWeekTable = showOddWeeks ? document.getElementById('oddWeekTable').getElementsByTagName('tbody')[0] : null;
-    const evenWeekTable = showEvenWeeks ? document.getElementById('evenWeekTable').getElementsByTagName('tbody')[0] : null;
+    docs.forEach((doc, i) => {
+        const tbody = (id) => document.getElementById(id)?.getElementsByTagName('tbody')[0] || null;
+        fillPreviewTables(doc, getMappings(doc), teacherId, tbody(`oddWeekTable-${i}`), tbody(`evenWeekTable-${i}`));
+    });
+}
+
+function fillPreviewTables(xmlData, mappings, teacherId, oddWeekTable, evenWeekTable) {
     const lessons = xmlData.querySelectorAll(`lesson[teacherids*="${teacherId}"]`);
     const lessonMap = new Map();
     
@@ -504,7 +536,8 @@ function updatePreview(teacherId) {
     }
 }
 
-window.createTeacherCalendar = function(teacherId, startDate, endDate, startWeekType) {
+// Builds the calendar from every timetable file that overlaps the date range.
+window.createTeacherCalendar = async function(teacherId, startDate, endDate, startWeekType) {
     const cal = new ICAL.Component(['vcalendar', [], []]);
     cal.updatePropertyWithValue('prodid', '-//Timetable Calendar//EN');
     cal.updatePropertyWithValue('version', '2.0');
@@ -512,6 +545,19 @@ window.createTeacherCalendar = function(teacherId, startDate, endDate, startWeek
     cal.updatePropertyWithValue('x-wr-calname', `Timetable - ${teacherId}`);
     cal.updatePropertyWithValue('x-wr-timezone', 'Asia/Singapore');
 
+    const segments = window.TimetableCommon.getTimetableSegments(startDate, endDate);
+    for (let i = 0; i < segments.length; i++) {
+        const seg = segments[i];
+        const res = await fetch(`timetables/${seg.file}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status} when fetching timetables/${seg.file}`);
+        const segXml = window.TimetableCommon.parseXmlDocument(await res.text());
+        addTeacherEvents(cal, segXml, getMappings(segXml), teacherId, seg.start, seg.end, i);
+    }
+
+    return cal;
+};
+
+function addTeacherEvents(cal, xmlData, mappings, teacherId, startDate, endDate, segmentIndex) {
     const lessons = xmlData.querySelectorAll(`lesson[teacherids*="${teacherId}"]`);
     console.log(`Found ${lessons.length} total lessons for teacher ${teacherId}`);
     
@@ -628,7 +674,7 @@ window.createTeacherCalendar = function(teacherId, startDate, endDate, startWeek
             vevent.addPropertyWithValue('location', roomDisplay);
             vevent.addPropertyWithValue('description', classNames);
             vevent.addPropertyWithValue('status', 'CONFIRMED');
-            const uidValue = `${lessonId}-${group.dayIndex}-${group.weeks}-${group.startPeriod}-${group.endPeriod}-${roomIds.join('_')}`;
+            const uidValue = `${segmentIndex}-${lessonId}-${group.dayIndex}-${group.weeks}-${group.startPeriod}-${group.endPeriod}-${roomIds.join('_')}`;
             vevent.addPropertyWithValue('uid', uidValue);
 
             const untilDate = new Date(endDate);
@@ -646,8 +692,6 @@ window.createTeacherCalendar = function(teacherId, startDate, endDate, startWeek
             cal.addSubcomponent(vevent);
         });
     });
-
-    return cal;
 }
 
 function createEventForCard(calendar, card, lesson, weekStart) {

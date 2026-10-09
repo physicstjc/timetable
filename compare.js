@@ -476,28 +476,35 @@ function clearSearch() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // Initialize XML dropdown and hook change event
-    const xmlSelect = document.getElementById('xmlSelect');
-    if (xmlSelect) {
-        await populateXMLDropdown(); // Call only once
-        xmlSelect.addEventListener('change', async (e) => {
-            await loadSelectedXML(e.target.value);
-        });
-    } else {
-        // No dropdown: load from timetables/ using known files
-        await loadDefaultTimetable();
-    }
+    const dateInput = document.getElementById('compareDate');
+    const daySelect = document.getElementById('daySelect');
+    const weekTypeSel = document.getElementById('weekType');
+    let loadedPath = null;
+
+    // Pick the timetable file, week type and weekday from the chosen date
+    const applyDate = async () => {
+        if (!dateInput.value) return;
+        const [y, m, d] = dateInput.value.split('-').map(Number);
+        const date = new Date(y, m - 1, d);
+        weekTypeSel.value = window.TimetableCommon.computeWeekTypeFromDate(date);
+        const dayIdx = date.getDay() - 1;
+        if (dayIdx >= 0 && dayIdx <= 4) daySelect.value = dayIdx;
+        const path = window.TimetableCommon.getTimetablePathForDate(dateInput.value);
+        if (path !== loadedPath) {
+            loadedPath = path;
+            await loadSelectedXML(path);
+        } else {
+            updateComparison();
+        }
+    };
+
+    dateInput.value = window.TimetableCommon.toIsoDate(new Date());
+    dateInput.addEventListener('change', applyDate);
+    await applyDate();
 
     // Continue with existing initialization (department/teacher UI, comparison table)
-    const daySelect = document.getElementById('daySelect');
-    daySelect.value = getCurrentDayIndex();
-
     daySelect.addEventListener('change', updateComparison);
-    document.getElementById('weekType').addEventListener('change', updateComparison);
-    const weekTypeSel = document.getElementById('weekType');
-    if (weekTypeSel) {
-        weekTypeSel.value = window.TimetableCommon.computeWeekTypeFromDate(new Date());
-    }
+    weekTypeSel.addEventListener('change', updateComparison);
 
     const deptSelect = document.getElementById('departmentSelect');
     if (deptSelect) {
