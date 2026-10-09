@@ -227,24 +227,20 @@ function findLessonsForClassPeriodDay(classId, periodId, dayIndex) {
 async function loadSelectedXML(path) {
     try {
         const response = await fetch(path);
-        if (!response.ok) throw new Error(`HTTP ${response.status} when fetching ${path}`);
         const text = await response.text();
         xmlData = window.TimetableCommon.parseXmlDocument(text);
         mappings = window.TimetableCommon.buildMappings(xmlData);
 
-        // Repopulate classes based on new XML, keeping the current class if it still exists
-        const previousClassId = selectedClassId;
+        // Repopulate classes based on new XML
         populateClassSelect();
 
+        // Clear current class selection and timetable
         const classSelect = document.getElementById('classSelect');
-        if (classSelect && previousClassId && mappings.classes[previousClassId]) {
-            classSelect.value = previousClassId;
-            updateTimetable();
-        } else {
-            if (classSelect) classSelect.value = '';
-            selectedClassId = null;
-            clearTimetable();
+        if (classSelect) {
+            classSelect.value = '';
         }
+        selectedClassId = null;
+        clearTimetable();
     } catch (err) {
         console.error('Failed to load selected XML:', err);
         alert(`Failed to load selected XML: ${err.message}`);
@@ -331,36 +327,18 @@ function populateXMLDropdown() {
         });
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-    const dateInput = document.getElementById('classDate');
-    let loadedPath = null;
-
-    // Pick the timetable file and week type from the chosen date
-    const applyDate = async () => {
-        if (!dateInput.value) return;
-        const [y, m, d] = dateInput.value.split('-').map(Number);
-        setWeekType(window.TimetableCommon.computeWeekTypeFromDate(new Date(y, m - 1, d)));
-        const path = window.TimetableCommon.getTimetablePathForDate(dateInput.value);
-        if (!path) {
-            loadedPath = null;
-            xmlData = null;
-            mappings = window.TimetableCommon.createMappingsTemplate();
-            populateClassSelect();
-            selectedClassId = null;
-            hideClassInfo();clampToCoverag
-            clearTimetable();
-            alert(window.TimetableCommon.getNoTimetableMessage());
-            return;
-        }
-        if (path !== loadedPath) {
-            loadedPath = path;
-            await loadSelectedXML(path);
-        }
-    };
-
-    dateInput.value = window.TimetableCommon.toIsoDate(new Date());
-    dateInput.addEventListener('change', applyDate);
-    await applyDate();
+document.addEventListener('DOMContentLoaded', () => {
+    const xmlSelect = document.getElementById('xmlSelect');
+    if (xmlSelect) {
+        populateXMLDropdown();
+        xmlSelect.addEventListener('change', (e) => {
+            loadSelectedXML(e.target.value);
+        });
+    } else {
+        // Fallback if XML dropdown is not present
+        loadDefaultTimetable();
+    }
+    setWeekType(window.TimetableCommon.computeWeekTypeFromDate(new Date()));
 });
 
 // Make functions available globally

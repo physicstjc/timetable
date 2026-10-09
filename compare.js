@@ -10,7 +10,6 @@ let mappings = {
 };
 // Add after the selectedTeachers declaration at the top
 let selectedTeachers = new Set(JSON.parse(localStorage.getItem('selectedTeachers') || '[]'));
-let outOfRange = false;
 let savedGroups = JSON.parse(localStorage.getItem('teacherGroups') || '{}');
 
 // Modify the loadDefaultTimetable function to update the UI after loading
@@ -76,7 +75,7 @@ function getCurrentDayIndex() {
 function updateComparison() {
     const timetableDiv = document.querySelector('.timetable');
     
-    if (selectedTeachers.size === 0 || outOfRange) {
+    if (selectedTeachers.size === 0) {
         timetableDiv.classList.remove('visible');
         return;
     }
@@ -477,43 +476,28 @@ function clearSearch() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-    const dateInput = document.getElementById('compareDate');
-    const daySelect = document.getElementById('daySelect');
-    const weekTypeSel = document.getElementById('weekType');
-    let loadedPath = null;
-
-    // Pick the timetable file, week type and weekday from the chosen date
-    const applyDate = async () => {
-        if (!dateInput.value) return;
-        const [y, m, d] = dateInput.value.split('-').map(Number);
-        const date = new Date(y, m - 1, d);
-        weekTypeSel.value = window.TimetableCommon.computeWeekTypeFromDate(date);
-        const dayIdx = date.getDay() - 1;
-        if (dayIdx >= 0 && dayIdx <= 4) daySelect.value = dayIdx;
-        const path = window.TimetableCommon.getTimetablePathForDate(dateInput.value);
-        if (!path) {
-            loadedPath = null;
-            outOfRange = true;
-            updateComparison();
-            alert(window.TimetableCommon.getNoTimetableMessage());
-            return;
-        }
-        outOfRange = false;
-        if (path !== loadedPath) {clampToCoverag
-            loadedPath = path;
-            await loadSelectedXML(path);
-        } else {
-            updateComparison();
-        }
-    };
-
-    dateInput.value = window.TimetableCommon.toIsoDate(new Date());
-    dateInput.addEventListener('change', applyDate);
-    await applyDate();
+    // Initialize XML dropdown and hook change event
+    const xmlSelect = document.getElementById('xmlSelect');
+    if (xmlSelect) {
+        await populateXMLDropdown(); // Call only once
+        xmlSelect.addEventListener('change', async (e) => {
+            await loadSelectedXML(e.target.value);
+        });
+    } else {
+        // No dropdown: load from timetables/ using known files
+        await loadDefaultTimetable();
+    }
 
     // Continue with existing initialization (department/teacher UI, comparison table)
+    const daySelect = document.getElementById('daySelect');
+    daySelect.value = getCurrentDayIndex();
+
     daySelect.addEventListener('change', updateComparison);
-    weekTypeSel.addEventListener('change', updateComparison);
+    document.getElementById('weekType').addEventListener('change', updateComparison);
+    const weekTypeSel = document.getElementById('weekType');
+    if (weekTypeSel) {
+        weekTypeSel.value = window.TimetableCommon.computeWeekTypeFromDate(new Date());
+    }
 
     const deptSelect = document.getElementById('departmentSelect');
     if (deptSelect) {
